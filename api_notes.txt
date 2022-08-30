@@ -31,7 +31,7 @@
 // Services Checked:                       24
 // "has_been_checked": "0", (1 not checked yet )
 // Services Scheduled:                     25
-// "should be scheduled": "0", (1 not scheculed )
+// "should be scheduled": "0", (1 not scheduled )
 // Services Actively Checked:              25
 // "check_type": "0",
 // Services Passively Checked:             0
