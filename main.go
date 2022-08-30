@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -19,10 +20,17 @@ type Config struct {
 }
 
 const namespace = "nagios"
+const nagiosAPIVersion = "/nagiosxi"
 const apiSlug = "/api/v1"
-const hoststatusAPI = apiSlug + "/objects/hoststatus"
-const servicestatusAPI = apiSlug + "/objects/servicestatus"
-const systeminfoAPI = apiSlug + "/system/info"
+const hoststatusAPI = "/objects/hoststatus"
+const servicestatusAPI = "/objects/servicestatus"
+const systeminfoAPI = "/system/info"
+const systemstatusAPI = "/system/status"
+
+type systemStatus struct {
+	// https://stackoverflow.com/questions/21151765/cannot-unmarshal-string-into-go-value-of-type-int64
+	Running int `json:"is_currently_running,string"`
+}
 
 func ReadConfig(configPath string) Config {
 
@@ -35,25 +43,15 @@ func ReadConfig(configPath string) Config {
 	return conf
 }
 
-func main() {
-
-	var (
-		listenAddress = flag.String("web.listen-address", ":9111",
-			"Address to listen on for telemetry")
-		metricsPath = flag.String("web.telemetry-path", "/metrics",
-			"Path under which to expose metrics")
-		remoteAddress = flag.String("web.remote-address", "localhost",
-			"Nagios application address")
-		configPath = flag.String("config.path", "/etc/nagios_exporter/config.toml",
-			"Config file path")
-	)
-
-	flag.Parse()
-
-	var conf Config = ReadConfig(*configPath)
-
+var (
 	// Metrics
 	// TODO - double check I'm naming these metrics right .. like they all have _total?
+	up = prometheus.NewDesc(
+		prometheus.BuildFQName(namespace, "", "up"),
+		"Whether Nagios can be reached",
+		nil, nil,
+	)
+
 	// Hosts
 	hostsTotal = prometheus.NewDesc(
 		prometheus.BuildFQName(namespace, "", "hosts_total"),
@@ -159,34 +157,138 @@ func main() {
 		"Nagios version information",
 		nil, nil,
 	)
+)
 
-	// TODO - HTTPS?
-	nagiosURL := "http://" + *remoteAddress + "/nagiosxi/api/v1/objects/servicestatus?apikey=" + conf.APIKey
+type Exporter struct {
+	nagiosEndpoint, nagiosAPIKey string
+}
 
-	req, err := http.NewRequest("GET", nagiosURL, nil)
+func NewExporter(nagiosEndpoint, nagiosAPIKey string) *Exporter {
+	return &Exporter{
+		nagiosEndpoint: nagiosEndpoint,
+		nagiosAPIKey:   nagiosAPIKey,
+	}
+}
+
+func (e *Exporter) Describe(ch chan<- *prometheus.Desc) {
+	ch <- up
+	// Hosts
+	ch <- hostsTotal
+	ch <- hostsActivelyCheckedTotal
+	ch <- hostsPassiveCheckedTotal
+	ch <- hostsUp
+	ch <- hostsDown
+	ch <- hostsUnreachable
+	ch <- hostsFlapping
+	ch <- hostsDowntime
+	// Services
+	ch <- servicesTotal
+	ch <- servicesActivelyCheckedTotal
+	ch <- servicesPassiveCheckedTotal
+	ch <- servicesUp
+	ch <- servicesDown
+	ch <- servicesUnreachable
+	ch <- servicesFlapping
+	ch <- servicesDowntime
+	// System
+	ch <- versionInfo
+}
+
+func (e *Exporter) TestNagios() (int, error) {
+
+	req, err := http.NewRequest("GET", e.nagiosEndpoint+systemstatusAPI+"?apikey="+e.nagiosAPIKey, nil)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(1)
 	}
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("User-Agent", "Prometheus")
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(1)
 	}
-	defer resp.Body.Close()
-
-	// TODO - assign type
-	var j interface{}
-	err = json.NewDecoder(resp.Body).Decode(&j)
-	if err != nil {
-		panic(err)
+	if resp.Body != nil {
+		defer resp.Body.Close()
 	}
-	// fmt.Printf("%s", j)
 
-	
+	body, readErr := ioutil.ReadAll(resp.Body)
+	if readErr != nil {
+		log.Fatal(readErr)
+	}
+	// TODO - better logging and error handling here
+	systemStatusObject := systemStatus{}
+	jsonErr := json.Unmarshal(body, &systemStatusObject)
+	if jsonErr != nil {
+		log.Fatal(jsonErr)
+	}
+
+	fmt.Println(systemStatusObject.Running)
+	// TODO - figure out which err to return and handle scrape failure better
+	return systemStatusObject.Running, err
+}
+
+func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
+
+	nagiosStatus, err := e.TestNagios()
+	if err != nil {
+		ch <- prometheus.MustNewConstMetric(
+			up, prometheus.GaugeValue, float64(nagiosStatus),
+		)
+		log.Println(err)
+		return
+	}
+	ch <- prometheus.MustNewConstMetric(
+		up, prometheus.GaugeValue, float64(nagiosStatus),
+	)
+
+	e.HitNagiosRestApisAndUpdateMetrics(ch)
+
+}
+
+func (e *Exporter) HitNagiosRestApisAndUpdateMetrics(ch chan<- prometheus.Metric) {
+
+	log.Println("Endpoint scraped")
+}
+
+func main() {
+
+	var (
+		listenAddress = flag.String("web.listen-address", ":9111",
+			"Address to listen on for telemetry")
+		metricsPath = flag.String("web.telemetry-path", "/metrics",
+			"Path under which to expose metrics")
+		remoteAddress = flag.String("web.remote-address", "localhost",
+			"Nagios application address")
+		configPath = flag.String("config.path", "/etc/nagios_exporter/config.toml",
+			"Config file path")
+	)
+
+	flag.Parse()
+
+	var conf Config = ReadConfig(*configPath)
+
+	// TODO - HTTPS?
+	nagiosURL := "http://" + *remoteAddress + nagiosAPIVersion + apiSlug
+	// nagiosURL := "http://" + *remoteAddress + "/nagiosxi/api/v1/objects/servicestatus?apikey=" + conf.APIKey
+
+	exporter := NewExporter(nagiosURL, conf.APIKey)
+	prometheus.MustRegister(exporter)
+	// todo - use better logging system
+	log.Printf("Using connection endpoint: %s", *remoteAddress)
 
 	http.Handle(*metricsPath, promhttp.Handler())
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(`<html>
+			<head><title>Nagios Exporter</title></head>
+			<body>
+			<h1>Nagios Exporter</h1>
+			<p><a href='` + *metricsPath + `'>Metrics</a></p>
+			</body>
+			</html>`))
+	})
+
 	log.Fatal(http.ListenAndServe(*listenAddress, nil))
+
 }

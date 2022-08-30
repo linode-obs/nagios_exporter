@@ -50,6 +50,7 @@
 
 // Misc
 // Version info: api/v1/system/info
+// Up: system/status -> "is_currently_running": "1",
 
 // begin by initializing prometheus metrics
 
