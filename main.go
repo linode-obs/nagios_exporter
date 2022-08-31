@@ -29,7 +29,7 @@ const systemstatusAPI = "/system/status"
 
 type systemStatus struct {
 	// https://stackoverflow.com/questions/21151765/cannot-unmarshal-string-into-go-value-of-type-int64
-	Running int `json:"is_currently_running,string"`
+	Running float64 `json:"is_currently_running,string"`
 }
 
 func ReadConfig(configPath string) Config {
@@ -45,6 +45,7 @@ func ReadConfig(configPath string) Config {
 
 var (
 	// Metrics
+	// TODO - writing in this style seems more readable https://github.com/prometheus/haproxy_exporter/blob/main/haproxy_exporter.go#L138
 	// TODO - double check I'm naming these metrics right .. like they all have _total?
 	up = prometheus.NewDesc(
 		prometheus.BuildFQName(namespace, "", "up"),
@@ -194,7 +195,7 @@ func (e *Exporter) Describe(ch chan<- *prometheus.Desc) {
 	ch <- versionInfo
 }
 
-func (e *Exporter) TestNagios() (int, error) {
+func (e *Exporter) TestNagiosConnectivity() (float64, error) {
 
 	req, err := http.NewRequest("GET", e.nagiosEndpoint+systemstatusAPI+"?apikey="+e.nagiosAPIKey, nil)
 	if err != nil {
@@ -231,16 +232,16 @@ func (e *Exporter) TestNagios() (int, error) {
 
 func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 
-	nagiosStatus, err := e.TestNagios()
+	nagiosStatus, err := e.TestNagiosConnectivity()
 	if err != nil {
 		ch <- prometheus.MustNewConstMetric(
-			up, prometheus.GaugeValue, float64(nagiosStatus),
+			up, prometheus.GaugeValue, nagiosStatus,
 		)
 		log.Println(err)
 		return
 	}
 	ch <- prometheus.MustNewConstMetric(
-		up, prometheus.GaugeValue, float64(nagiosStatus),
+		up, prometheus.GaugeValue, nagiosStatus,
 	)
 
 	e.HitNagiosRestApisAndUpdateMetrics(ch)
@@ -248,6 +249,8 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 }
 
 func (e *Exporter) HitNagiosRestApisAndUpdateMetrics(ch chan<- prometheus.Metric) {
+
+	// here we
 
 	log.Println("Endpoint scraped")
 }
