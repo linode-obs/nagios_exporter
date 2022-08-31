@@ -37,6 +37,7 @@
 // Services Passively Checked:             0
 // "check_type": "1", - just weird that the passive check I made is 0 for this..
 // Services Ok/Warn/Unk/Crit:              24 / 0 / 1 / 0
+// current_state ?
 // Services Flapping:                      0
 // "is_flapping": "0", (1 is flapping)
 // Services In Downtime:                   0

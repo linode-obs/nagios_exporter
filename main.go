@@ -32,6 +32,36 @@ type systemStatus struct {
 	Running float64 `json:"is_currently_running,string"`
 }
 
+
+type systemInfo struct {
+	Version      float64  `json:"version,string"`
+}
+
+// generated with https://github.com/bashtian/jsonutils
+type hostStatus struct {
+	Recordcount int64 `json:"recordcount"`
+	Hoststatus []struct {
+		HostObjectID               float64  `json:"host_object_id,string"`
+		CheckType                  float64  `json:"check_type,string"`
+		CurrentState               float64  `json:"current_state,string"`
+		IsFlapping                 float64  `json:"is_flapping,string"`
+		ScheduledDowntimeDepth     float64  `json:"scheduled_downtime_depth,string"`
+	} `json:"hoststatus"`
+}
+
+type serviceStatus struct {
+	Recordcount   int64 `json:"recordcount"`
+	Servicestatus []struct {
+		HasBeenChecked             float64  `json:"has_been_checked,string"`
+		ShouldBeScheduled          float64  `json:"should_be_scheduled,string"`
+		CheckType                  float64  `json:"check_type,string"`
+		CurrentState               float64  `json:"current_state,string"`
+		IsFlapping                 float64  `json:"is_flapping,string"`
+		ScheduledDowntimeDepth     float64  `json:"scheduled_downtime_depth,string"`
+	} `json:"servicestatus"`
+}
+
+
 func ReadConfig(configPath string) Config {
 
 	var conf Config
@@ -250,7 +280,42 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 
 func (e *Exporter) HitNagiosRestApisAndUpdateMetrics(ch chan<- prometheus.Metric) {
 
-	// here we
+	// get system version info
+	req, err := http.NewRequest("GET", e.nagiosEndpoint+systeminfoAPI+"?apikey="+e.nagiosAPIKey, nil)
+
+	// todo - better error handling on here, much function-ize the calls?
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error: %v\n", err)
+		os.Exit(1)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("User-Agent", "Prometheus")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error: %v\n", err)
+		os.Exit(1)
+	}
+	if resp.Body != nil {
+		defer resp.Body.Close()
+	}
+
+	body, readErr := ioutil.ReadAll(resp.Body)
+	if readErr != nil {
+		log.Fatal(readErr)
+	}
+	// TODO - better logging and error handling here
+	systemInfoObject := systemInfo{}
+	jsonErr := json.Unmarshal(body, &systemInfoObject)
+	if jsonErr != nil {
+		log.Fatal(jsonErr)
+	}
+
+	// 2022/08/30 20:55:59 json: cannot unmarshal number 5.8.10 into Go struct field systemInfo.version of type float64
+
+	ch <- prometheus.MustNewConstMetric(
+		versionInfo, prometheus.GaugeValue, systemInfoObject.Version,
+	)
 
 	log.Println("Endpoint scraped")
 }

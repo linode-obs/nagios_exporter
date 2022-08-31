@@ -7,3 +7,4 @@
 * [curl-to-go](https://mholt.github.io/curl-to-go/)
 * [mirth_exporter](https://github.com/teamzerolabs/mirth_channel_exporter)
 * [golang-json-api-client](https://blog.alexellis.io/golang-json-api-client/)
+* [jsonutils](https://github.com/bashtian/jsonutils)
