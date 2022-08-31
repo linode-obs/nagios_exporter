@@ -32,35 +32,33 @@ type systemStatus struct {
 	Running float64 `json:"is_currently_running,string"`
 }
 
-
 type systemInfo struct {
-	Version      float64  `json:"version,string"`
+	Version string `json:"version"`
 }
 
 // generated with https://github.com/bashtian/jsonutils
 type hostStatus struct {
 	Recordcount int64 `json:"recordcount"`
-	Hoststatus []struct {
-		HostObjectID               float64  `json:"host_object_id,string"`
-		CheckType                  float64  `json:"check_type,string"`
-		CurrentState               float64  `json:"current_state,string"`
-		IsFlapping                 float64  `json:"is_flapping,string"`
-		ScheduledDowntimeDepth     float64  `json:"scheduled_downtime_depth,string"`
+	Hoststatus  []struct {
+		HostObjectID           float64 `json:"host_object_id,string"`
+		CheckType              float64 `json:"check_type,string"`
+		CurrentState           float64 `json:"current_state,string"`
+		IsFlapping             float64 `json:"is_flapping,string"`
+		ScheduledDowntimeDepth float64 `json:"scheduled_downtime_depth,string"`
 	} `json:"hoststatus"`
 }
 
 type serviceStatus struct {
 	Recordcount   int64 `json:"recordcount"`
 	Servicestatus []struct {
-		HasBeenChecked             float64  `json:"has_been_checked,string"`
-		ShouldBeScheduled          float64  `json:"should_be_scheduled,string"`
-		CheckType                  float64  `json:"check_type,string"`
-		CurrentState               float64  `json:"current_state,string"`
-		IsFlapping                 float64  `json:"is_flapping,string"`
-		ScheduledDowntimeDepth     float64  `json:"scheduled_downtime_depth,string"`
+		HasBeenChecked         float64 `json:"has_been_checked,string"`
+		ShouldBeScheduled      float64 `json:"should_be_scheduled,string"`
+		CheckType              float64 `json:"check_type,string"`
+		CurrentState           float64 `json:"current_state,string"`
+		IsFlapping             float64 `json:"is_flapping,string"`
+		ScheduledDowntimeDepth float64 `json:"scheduled_downtime_depth,string"`
 	} `json:"servicestatus"`
 }
-
 
 func ReadConfig(configPath string) Config {
 
@@ -96,7 +94,7 @@ var (
 		nil, nil,
 	)
 
-	hostsPassiveCheckedTotal = prometheus.NewDesc(
+	hostsPassivelyCheckedTotal = prometheus.NewDesc(
 		prometheus.BuildFQName(namespace, "", "hosts_passively_checked_total"),
 		"Amount of hosts passively checked",
 		nil, nil,
@@ -186,7 +184,7 @@ var (
 	versionInfo = prometheus.NewDesc(
 		prometheus.BuildFQName(namespace, "", "version_info"),
 		"Nagios version information",
-		nil, nil,
+		[]string{"version"}, nil,
 	)
 )
 
@@ -206,7 +204,7 @@ func (e *Exporter) Describe(ch chan<- *prometheus.Desc) {
 	// Hosts
 	ch <- hostsTotal
 	ch <- hostsActivelyCheckedTotal
-	ch <- hostsPassiveCheckedTotal
+	ch <- hostsPassivelyCheckedTotal
 	ch <- hostsUp
 	ch <- hostsDown
 	ch <- hostsUnreachable
@@ -313,10 +311,108 @@ func (e *Exporter) HitNagiosRestApisAndUpdateMetrics(ch chan<- prometheus.Metric
 
 	// 2022/08/30 20:55:59 json: cannot unmarshal number 5.8.10 into Go struct field systemInfo.version of type float64
 
+	// systemVersion, err := strconv.ParseFloat(systemInfoObject.Version, 64)
 	ch <- prometheus.MustNewConstMetric(
-		versionInfo, prometheus.GaugeValue, systemInfoObject.Version,
+		versionInfo, prometheus.GaugeValue, 1, systemInfoObject.Version,
 	)
 
+	// get host status metrics
+	req, err = http.NewRequest("GET", e.nagiosEndpoint+hoststatusAPI+"?apikey="+e.nagiosAPIKey, nil)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error: %v\n", err)
+		os.Exit(1)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("User-Agent", "Prometheus")
+	resp, err = http.DefaultClient.Do(req)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error: %v\n", err)
+		os.Exit(1)
+	}
+	if resp.Body != nil {
+		defer resp.Body.Close()
+	}
+
+	body, readErr = ioutil.ReadAll(resp.Body)
+	if readErr != nil {
+		log.Fatal(readErr)
+	}
+
+	hostStatusObject := hostStatus{}
+
+	jsonErr = json.Unmarshal(body, &hostStatusObject)
+	if jsonErr != nil {
+		log.Fatal(jsonErr)
+	}
+
+	ch <- prometheus.MustNewConstMetric(
+		hostsTotal, prometheus.GaugeValue, float64(hostStatusObject.Recordcount),
+	)
+
+	var hostCount, hostActiveCheckCount, hostPassiveCheckCount, hostUpCount, hostDownCount, hostUnreachableCount, hostFlapCount, hostDowntimeCount int
+
+	// iterate through nested json
+	for i, v := range hostStatusObject.Hoststatus {
+
+		// for every host
+		hostCount++
+		fmt.Println(i, v.HostObjectID)
+
+		switch checktype := v.CheckType; checktype {
+		case 0:
+			hostActiveCheckCount++
+		case 1:
+			hostPassiveCheckCount++
+		}
+
+		switch currentstate := v.CurrentState; currentstate {
+		case 0:
+			hostUpCount++
+		case 1:
+			hostDownCount++
+		case 2:
+			hostUnreachableCount++
+		}
+
+		if v.IsFlapping == 1 {
+			hostFlapCount++
+		}
+
+		if v.ScheduledDowntimeDepth == 1 {
+			hostDowntimeCount++
+		}
+	}
+
+	// TODO - some have S'es and some don't
+	ch <- prometheus.MustNewConstMetric(
+		hostsActivelyCheckedTotal, prometheus.GaugeValue, float64(hostActiveCheckCount),
+	)
+
+	ch <- prometheus.MustNewConstMetric(
+		hostsPassivelyCheckedTotal, prometheus.GaugeValue, float64(hostPassiveCheckCount),
+	)
+
+	ch <- prometheus.MustNewConstMetric(
+		hostsUp, prometheus.GaugeValue, float64(hostUpCount),
+	)
+
+	ch <- prometheus.MustNewConstMetric(
+		hostsDown, prometheus.GaugeValue, float64(hostDownCount),
+	)
+
+	ch <- prometheus.MustNewConstMetric(
+		hostsUnreachable, prometheus.GaugeValue, float64(hostUnreachableCount),
+	)
+
+	ch <- prometheus.MustNewConstMetric(
+		hostsFlapping, prometheus.GaugeValue, float64(hostFlapCount),
+	)
+
+	ch <- prometheus.MustNewConstMetric(
+		hostsDowntime, prometheus.GaugeValue, float64(hostDowntimeCount),
+	)
+
+	// TODO - better logging
 	log.Println("Endpoint scraped")
 }
 
