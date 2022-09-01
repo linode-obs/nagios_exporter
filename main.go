@@ -3,9 +3,8 @@ package main
 import (
 	"encoding/json"
 	"flag"
-	"io/ioutil"
+	"io"
 	"net/http"
-	"os"
 
 	"github.com/BurntSushi/toml"
 	"github.com/prometheus/client_golang/prometheus"
@@ -66,7 +65,7 @@ func ReadConfig(configPath string) Config {
 	var conf Config
 
 	if _, err := toml.DecodeFile(configPath, &conf); err != nil {
-		log.Fatal(os.Stderr, "error: %v\n", err)
+		log.Fatal(err)
 	}
 
 	return conf
@@ -160,7 +159,7 @@ func QueryAPIs(url string) (body []byte) {
 	req, err := http.NewRequest("GET", url, nil)
 
 	if err != nil {
-		log.Warn(os.Stderr, "error: %v\n", err)
+		log.Warn(err)
 	}
 
 	req.Header.Set("Content-Type", "application/json")
@@ -169,7 +168,7 @@ func QueryAPIs(url string) (body []byte) {
 	resp, err := http.DefaultClient.Do(req)
 
 	if err != nil {
-		log.Warn(os.Stderr, "error: %v\n", err)
+		log.Warn(err)
 	}
 
 	if resp.Body != nil {
@@ -178,7 +177,7 @@ func QueryAPIs(url string) (body []byte) {
 		log.Warn("HTTP response body is nil - check API connectivity")
 	}
 
-	body, readErr := ioutil.ReadAll(resp.Body)
+	body, readErr := io.ReadAll(resp.Body)
 
 	if readErr != nil {
 		log.Fatal(readErr)
@@ -206,7 +205,7 @@ func (e *Exporter) QueryAPIsAndUpdateMetrics(ch chan<- prometheus.Metric) {
 	)
 
 	// host status
-	hoststatusURL := e.nagiosEndpoint + systeminfoAPI + "?apikey=" + e.nagiosAPIKey
+	hoststatusURL := e.nagiosEndpoint + hoststatusAPI + "?apikey=" + e.nagiosAPIKey
 
 	body = QueryAPIs(hoststatusURL)
 	log.Debug("Queried API: ", systeminfoAPI)
@@ -413,15 +412,17 @@ func main() {
 
 	http.Handle(*metricsPath, promhttp.Handler())
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(`<html>
+		_, err := w.Write([]byte(`<html>
 			<head><title>Nagios Exporter</title></head>
 			<body>
 			<h1>Nagios Exporter</h1>
 			<p><a href='` + *metricsPath + `'>Metrics</a></p>
 			</body>
 			</html>`))
+		if err != nil {
+			log.Fatal(err)
+		}
 	})
 
 	log.Fatal(http.ListenAndServe(*listenAddress, nil))
-
 }
