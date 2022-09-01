@@ -144,27 +144,33 @@ var (
 		nil, nil,
 	)
 
-	servicesPassiveCheckedTotal = prometheus.NewDesc(
+	servicesPassivelyCheckedTotal = prometheus.NewDesc(
 		prometheus.BuildFQName(namespace, "", "services_passively_checked_total"),
 		"Amount of services passively checked",
 		nil, nil,
 	)
 
-	servicesUp = prometheus.NewDesc(
-		prometheus.BuildFQName(namespace, "", "services_up_total"),
+	servicesOk = prometheus.NewDesc(
+		prometheus.BuildFQName(namespace, "", "services_ok_total"),
 		"Amount of services in 'up' state",
 		nil, nil,
 	)
 
-	servicesDown = prometheus.NewDesc(
-		prometheus.BuildFQName(namespace, "", "services_down_total"),
-		"Amount of services in 'down' state",
+	servicesWarn = prometheus.NewDesc(
+		prometheus.BuildFQName(namespace, "", "services_warn_total"),
+		"Amount of services in 'warn' state",
 		nil, nil,
 	)
 
-	servicesUnreachable = prometheus.NewDesc(
-		prometheus.BuildFQName(namespace, "", "services_unreachable_total"),
-		"Amount of services in 'unreachable' state",
+	servicesCritical = prometheus.NewDesc(
+		prometheus.BuildFQName(namespace, "", "services_critical_total"),
+		"Amount of services in 'critical' state",
+		nil, nil,
+	)
+
+	servicesUnknown = prometheus.NewDesc(
+		prometheus.BuildFQName(namespace, "", "services_unknown_total"),
+		"Amount of services in 'unknown' state",
 		nil, nil,
 	)
 
@@ -213,10 +219,11 @@ func (e *Exporter) Describe(ch chan<- *prometheus.Desc) {
 	// Services
 	ch <- servicesTotal
 	ch <- servicesActivelyCheckedTotal
-	ch <- servicesPassiveCheckedTotal
-	ch <- servicesUp
-	ch <- servicesDown
-	ch <- servicesUnreachable
+	ch <- servicesPassivelyCheckedTotal
+	ch <- servicesOk
+	ch <- servicesWarn
+	ch <- servicesCritical
+	ch <- servicesUnknown
 	ch <- servicesFlapping
 	ch <- servicesDowntime
 	// System
@@ -281,7 +288,8 @@ func (e *Exporter) HitNagiosRestApisAndUpdateMetrics(ch chan<- prometheus.Metric
 	// get system version info
 	req, err := http.NewRequest("GET", e.nagiosEndpoint+systeminfoAPI+"?apikey="+e.nagiosAPIKey, nil)
 
-	// todo - better error handling on here, much function-ize the calls?
+	// TODO - better error handling on here, maybe function-ize the calls?
+	// especially the HTTP gets - make a single HTTP GET function that returns a `body` object
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(1)
@@ -349,67 +357,173 @@ func (e *Exporter) HitNagiosRestApisAndUpdateMetrics(ch chan<- prometheus.Metric
 		hostsTotal, prometheus.GaugeValue, float64(hostStatusObject.Recordcount),
 	)
 
-	var hostCount, hostActiveCheckCount, hostPassiveCheckCount, hostUpCount, hostDownCount, hostUnreachableCount, hostFlapCount, hostDowntimeCount int
+	var hostsCount, hostsActiveCheckCount, hostsPassiveCheckCount, hostsUpCount, hostsDownCount, hostsUnreachableCount, hostsFlapCount, hostsDowntimeCount int
 
 	// iterate through nested json
-	for i, v := range hostStatusObject.Hoststatus {
+	for _, v := range hostStatusObject.Hoststatus {
 
-		// for every host
-		hostCount++
-		fmt.Println(i, v.HostObjectID)
+		// for every hosts
+		hostsCount++
 
-		switch checktype := v.CheckType; checktype {
-		case 0:
-			hostActiveCheckCount++
-		case 1:
-			hostPassiveCheckCount++
+		if v.CheckType == 0 {
+			hostsActiveCheckCount++
+		} else {
+			hostsPassiveCheckCount++
 		}
 
 		switch currentstate := v.CurrentState; currentstate {
 		case 0:
-			hostUpCount++
+			hostsUpCount++
 		case 1:
-			hostDownCount++
+			hostsDownCount++
 		case 2:
-			hostUnreachableCount++
+			hostsUnreachableCount++
 		}
 
 		if v.IsFlapping == 1 {
-			hostFlapCount++
+			hostsFlapCount++
 		}
 
 		if v.ScheduledDowntimeDepth == 1 {
-			hostDowntimeCount++
+			hostsDowntimeCount++
 		}
 	}
 
-	// TODO - some have S'es and some don't
+	// TODO - some variable names have S'es and some don't
 	ch <- prometheus.MustNewConstMetric(
-		hostsActivelyCheckedTotal, prometheus.GaugeValue, float64(hostActiveCheckCount),
+		hostsActivelyCheckedTotal, prometheus.GaugeValue, float64(hostsActiveCheckCount),
 	)
 
 	ch <- prometheus.MustNewConstMetric(
-		hostsPassivelyCheckedTotal, prometheus.GaugeValue, float64(hostPassiveCheckCount),
+		hostsPassivelyCheckedTotal, prometheus.GaugeValue, float64(hostsPassiveCheckCount),
 	)
 
 	ch <- prometheus.MustNewConstMetric(
-		hostsUp, prometheus.GaugeValue, float64(hostUpCount),
+		hostsUp, prometheus.GaugeValue, float64(hostsUpCount),
 	)
 
 	ch <- prometheus.MustNewConstMetric(
-		hostsDown, prometheus.GaugeValue, float64(hostDownCount),
+		hostsDown, prometheus.GaugeValue, float64(hostsDownCount),
 	)
 
 	ch <- prometheus.MustNewConstMetric(
-		hostsUnreachable, prometheus.GaugeValue, float64(hostUnreachableCount),
+		hostsUnreachable, prometheus.GaugeValue, float64(hostsUnreachableCount),
 	)
 
 	ch <- prometheus.MustNewConstMetric(
-		hostsFlapping, prometheus.GaugeValue, float64(hostFlapCount),
+		hostsFlapping, prometheus.GaugeValue, float64(hostsFlapCount),
 	)
 
 	ch <- prometheus.MustNewConstMetric(
-		hostsDowntime, prometheus.GaugeValue, float64(hostDowntimeCount),
+		hostsDowntime, prometheus.GaugeValue, float64(hostsDowntimeCount),
+	)
+
+	req, err = http.NewRequest("GET", e.nagiosEndpoint+servicestatusAPI+"?apikey="+e.nagiosAPIKey, nil)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error: %v\n", err)
+		os.Exit(1)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("User-Agent", "Prometheus")
+	resp, err = http.DefaultClient.Do(req)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error: %v\n", err)
+		os.Exit(1)
+	}
+	if resp.Body != nil {
+		defer resp.Body.Close()
+	}
+
+	body, readErr = ioutil.ReadAll(resp.Body)
+	if readErr != nil {
+		log.Fatal(readErr)
+	}
+
+	serviceStatusObject := serviceStatus{}
+
+	jsonErr = json.Unmarshal(body, &serviceStatusObject)
+	if jsonErr != nil {
+		log.Fatal(jsonErr)
+	}
+
+	ch <- prometheus.MustNewConstMetric(
+		servicesTotal, prometheus.GaugeValue, float64(serviceStatusObject.Recordcount),
+	)
+
+	var servicesCount, servicessCheckedCount, servicesScheduledCount, servicesActiveCheckCount, servicesPassiveCheckCount, servicesOkCount, servicesWarnCount, servicesCriticalCount, servicesUnknownCount, servicesFlapCount, servicesDowntimeCount int
+
+	for _, v := range serviceStatusObject.Servicestatus {
+
+		servicesCount++
+
+		if v.HasBeenChecked == 0 {
+			servicessCheckedCount++
+		}
+
+		if v.ShouldBeScheduled == 0 {
+			// TODO - is should_be_scheduled different than a services actually being scheduled?
+			servicesScheduledCount++
+		}
+
+		if v.CheckType == 0 {
+			// TODO - I'm a little shaky on check_type -> 1 being passive
+			servicesActiveCheckCount++
+		} else {
+			servicesPassiveCheckCount++
+		}
+
+		switch currentstate := v.CurrentState; currentstate {
+		// TODO - verify this order, e.g 1/2 are warn/crit
+		case 0:
+			servicesOkCount++
+		case 1:
+			servicesWarnCount++
+		case 2:
+			servicesCriticalCount++
+		case 3:
+			servicesUnknownCount++
+		}
+
+		if v.IsFlapping == 1 {
+			servicesFlapCount++
+		}
+
+		if v.ScheduledDowntimeDepth == 1 {
+			servicesDowntimeCount++
+		}
+	}
+
+	ch <- prometheus.MustNewConstMetric(
+		servicesActivelyCheckedTotal, prometheus.GaugeValue, float64(servicesActiveCheckCount),
+	)
+
+	ch <- prometheus.MustNewConstMetric(
+		servicesPassivelyCheckedTotal, prometheus.GaugeValue, float64(hostsPassiveCheckCount),
+	)
+
+	ch <- prometheus.MustNewConstMetric(
+		servicesOk, prometheus.GaugeValue, float64(servicesOkCount),
+	)
+
+	ch <- prometheus.MustNewConstMetric(
+		servicesWarn, prometheus.GaugeValue, float64(servicesWarnCount),
+	)
+
+	ch <- prometheus.MustNewConstMetric(
+		servicesCritical, prometheus.GaugeValue, float64(servicesWarnCount),
+	)
+
+	ch <- prometheus.MustNewConstMetric(
+		servicesUnknown, prometheus.GaugeValue, float64(servicesUnknownCount),
+	)
+
+	ch <- prometheus.MustNewConstMetric(
+		servicesFlapping, prometheus.GaugeValue, float64(servicesFlapCount),
+	)
+
+	ch <- prometheus.MustNewConstMetric(
+		servicesDowntime, prometheus.GaugeValue, float64(servicesDowntimeCount),
 	)
 
 	// TODO - better logging
