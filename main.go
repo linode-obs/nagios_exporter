@@ -74,7 +74,6 @@ func ReadConfig(configPath string) Config {
 
 var (
 	// Metrics
-	// TODO - double check I'm naming these metrics right .. like they all have _total?
 	up = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "up"), "Whether Nagios can be reached", nil, nil)
 
 	// Hosts
