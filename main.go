@@ -3,11 +3,11 @@ package main
 import (
 	"encoding/json"
 	"flag"
-	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"os"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/BurntSushi/toml"
 	"github.com/prometheus/client_golang/prometheus"
@@ -20,6 +20,8 @@ type Config struct {
 }
 
 const namespace = "nagios"
+
+// NagiosXI specific API endpoints
 const nagiosAPIVersion = "/nagiosxi"
 const apiSlug = "/api/v1"
 const hoststatusAPI = "/objects/hoststatus"
@@ -63,9 +65,9 @@ type serviceStatus struct {
 func ReadConfig(configPath string) Config {
 
 	var conf Config
+
 	if _, err := toml.DecodeFile(configPath, &conf); err != nil {
-		fmt.Fprintf(os.Stderr, "error: %v\n", err)
-		os.Exit(2)
+		log.Fatal(os.Stderr, "error: %v\n", err)
 	}
 
 	return conf
@@ -230,86 +232,79 @@ func (e *Exporter) Describe(ch chan<- *prometheus.Desc) {
 	ch <- versionInfo
 }
 
-func (e *Exporter) TestNagiosConnectivity() (float64, error) {
+func (e *Exporter) TestNagiosConnectivity() float64 {
 
-	req, err := http.NewRequest("GET", e.nagiosEndpoint+systemstatusAPI+"?apikey="+e.nagiosAPIKey, nil)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "error: %v\n", err)
-		os.Exit(1)
-	}
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("User-Agent", "Prometheus")
+	systemStatusURL := e.nagiosEndpoint + systemstatusAPI + "?apikey=" + e.nagiosAPIKey
 
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "error: %v\n", err)
-		os.Exit(1)
-	}
-	if resp.Body != nil {
-		defer resp.Body.Close()
-	}
+	body := QueryAPIs(systemStatusURL)
+	log.Debug("Queried API: ", systemstatusAPI)
 
-	body, readErr := ioutil.ReadAll(resp.Body)
-	if readErr != nil {
-		log.Fatal(readErr)
-	}
-	// TODO - better logging and error handling here
 	systemStatusObject := systemStatus{}
+
 	jsonErr := json.Unmarshal(body, &systemStatusObject)
 	if jsonErr != nil {
 		log.Fatal(jsonErr)
 	}
 
-	fmt.Println(systemStatusObject.Running)
-	// TODO - figure out which err to return and handle scrape failure better
-	return systemStatusObject.Running, err
+	return systemStatusObject.Running
 }
 
 func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 
-	nagiosStatus, err := e.TestNagiosConnectivity()
-	if err != nil {
-		ch <- prometheus.MustNewConstMetric(
-			up, prometheus.GaugeValue, nagiosStatus,
-		)
-		log.Println(err)
-		return
+	nagiosStatus := e.TestNagiosConnectivity()
+
+	if nagiosStatus == 0 {
+		log.Warn("Cannot connect to Nagios endpoint")
 	}
+
 	ch <- prometheus.MustNewConstMetric(
 		up, prometheus.GaugeValue, nagiosStatus,
 	)
 
-	e.HitNagiosRestApisAndUpdateMetrics(ch)
+	e.QueryAPIsAndUpdateMetrics(ch)
 
 }
 
-func (e *Exporter) HitNagiosRestApisAndUpdateMetrics(ch chan<- prometheus.Metric) {
+func QueryAPIs(url string) (body []byte) {
 
-	// get system version info
-	req, err := http.NewRequest("GET", e.nagiosEndpoint+systeminfoAPI+"?apikey="+e.nagiosAPIKey, nil)
+	req, err := http.NewRequest("GET", url, nil)
 
-	// TODO - better error handling on here, maybe function-ize the calls?
-	// especially the HTTP gets - make a single HTTP GET function that returns a `body` object
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "error: %v\n", err)
-		os.Exit(1)
+		log.Warn(os.Stderr, "error: %v\n", err)
 	}
+
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("User-Agent", "Prometheus")
 
 	resp, err := http.DefaultClient.Do(req)
+
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "error: %v\n", err)
-		os.Exit(1)
+		log.Warn(os.Stderr, "error: %v\n", err)
 	}
+
 	if resp.Body != nil {
 		defer resp.Body.Close()
+	} else {
+		log.Warn("HTTP response body is nil - check API connectivity")
 	}
 
 	body, readErr := ioutil.ReadAll(resp.Body)
+
 	if readErr != nil {
 		log.Fatal(readErr)
 	}
+
+	return body
+}
+
+func (e *Exporter) QueryAPIsAndUpdateMetrics(ch chan<- prometheus.Metric) {
+
+	// get system status
+	systeminfoURL := e.nagiosEndpoint + systeminfoAPI + "?apikey=" + e.nagiosAPIKey
+	log.Debug("Queried API: ", systeminfoAPI)
+
+	body := QueryAPIs(systeminfoURL)
+
 	// TODO - better logging and error handling here
 	systemInfoObject := systemInfo{}
 	jsonErr := json.Unmarshal(body, &systemInfoObject)
@@ -317,34 +312,15 @@ func (e *Exporter) HitNagiosRestApisAndUpdateMetrics(ch chan<- prometheus.Metric
 		log.Fatal(jsonErr)
 	}
 
-	// 2022/08/30 20:55:59 json: cannot unmarshal number 5.8.10 into Go struct field systemInfo.version of type float64
-
-	// systemVersion, err := strconv.ParseFloat(systemInfoObject.Version, 64)
 	ch <- prometheus.MustNewConstMetric(
 		versionInfo, prometheus.GaugeValue, 1, systemInfoObject.Version,
 	)
 
-	// get host status metrics
-	req, err = http.NewRequest("GET", e.nagiosEndpoint+hoststatusAPI+"?apikey="+e.nagiosAPIKey, nil)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "error: %v\n", err)
-		os.Exit(1)
-	}
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("User-Agent", "Prometheus")
-	resp, err = http.DefaultClient.Do(req)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "error: %v\n", err)
-		os.Exit(1)
-	}
-	if resp.Body != nil {
-		defer resp.Body.Close()
-	}
+	// host status
+	hoststatusURL := e.nagiosEndpoint + systeminfoAPI + "?apikey=" + e.nagiosAPIKey
 
-	body, readErr = ioutil.ReadAll(resp.Body)
-	if readErr != nil {
-		log.Fatal(readErr)
-	}
+	body = QueryAPIs(hoststatusURL)
+	log.Debug("Queried API: ", systeminfoAPI)
 
 	hostStatusObject := hostStatus{}
 
@@ -418,27 +394,11 @@ func (e *Exporter) HitNagiosRestApisAndUpdateMetrics(ch chan<- prometheus.Metric
 		hostsDowntime, prometheus.GaugeValue, float64(hostsDowntimeCount),
 	)
 
-	req, err = http.NewRequest("GET", e.nagiosEndpoint+servicestatusAPI+"?apikey="+e.nagiosAPIKey, nil)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "error: %v\n", err)
-		os.Exit(1)
-	}
+	// service status
+	servicestatusURL := e.nagiosEndpoint + servicestatusAPI + "?apikey=" + e.nagiosAPIKey
 
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("User-Agent", "Prometheus")
-	resp, err = http.DefaultClient.Do(req)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "error: %v\n", err)
-		os.Exit(1)
-	}
-	if resp.Body != nil {
-		defer resp.Body.Close()
-	}
-
-	body, readErr = ioutil.ReadAll(resp.Body)
-	if readErr != nil {
-		log.Fatal(readErr)
-	}
+	body = QueryAPIs(servicestatusURL)
+	log.Debug("Queried API: ", servicestatusAPI)
 
 	serviceStatusObject := serviceStatus{}
 
@@ -526,8 +486,7 @@ func (e *Exporter) HitNagiosRestApisAndUpdateMetrics(ch chan<- prometheus.Metric
 		servicesDowntime, prometheus.GaugeValue, float64(servicesDowntimeCount),
 	)
 
-	// TODO - better logging
-	log.Println("Endpoint scraped")
+	log.Info("Endpoint scraped and metrics updated")
 }
 
 func main() {
@@ -541,20 +500,28 @@ func main() {
 			"Nagios application address")
 		configPath = flag.String("config.path", "/etc/nagios_exporter/config.toml",
 			"Config file path")
+		logLevel = flag.String("log.level", "info",
+			"Minimum Log level [debug, info]")
 	)
 
 	flag.Parse()
 
+	if *logLevel == "debug" {
+		log.SetLevel(log.DebugLevel)
+		log.Debug("Log level set to debug")
+	} else {
+		log.SetLevel(log.InfoLevel)
+	}
+
 	var conf Config = ReadConfig(*configPath)
 
-	// TODO - HTTPS?
+	// TODO - HTTPS support
 	nagiosURL := "http://" + *remoteAddress + nagiosAPIVersion + apiSlug
-	// nagiosURL := "http://" + *remoteAddress + "/nagiosxi/api/v1/objects/servicestatus?apikey=" + conf.APIKey
 
 	exporter := NewExporter(nagiosURL, conf.APIKey)
 	prometheus.MustRegister(exporter)
-	// todo - use better logging system
-	log.Printf("Using connection endpoint: %s", *remoteAddress)
+
+	log.Info("Using connection endpoint: ", *remoteAddress)
 
 	http.Handle(*metricsPath, promhttp.Handler())
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
