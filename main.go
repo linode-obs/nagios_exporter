@@ -78,26 +78,18 @@ var (
 	up = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "up"), "Whether Nagios can be reached", nil, nil)
 
 	// Hosts
-	hostsTotal                 = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "hosts"), "Amount of hosts present in configuration", nil, nil)
-	hostsActivelyCheckedTotal  = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "hosts_actively_checked"), "Amount of hosts actively checked", nil, nil)
-	hostsPassivelyCheckedTotal = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "hosts_passively_checked_total"), "Amount of hosts passively checked", nil, nil)
-	hostsUp                    = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "hosts_up_total"), "Amount of hosts in 'up' state", nil, nil)
-	hostsDown                  = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "hosts_down_total"), "Amount of hosts in 'down' state", nil, nil)
-	hostsUnreachable           = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "hosts_unreachable_total"), "Amount of hosts in 'unreachable' state", nil, nil)
-	hostsFlapping              = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "hosts_flapping_total"), "Amount of hosts in 'flapping' state", nil, nil)
-	hostsDowntime              = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "hosts_downtime_total"), "Amount of hosts in downtime", nil, nil)
+	hostsTotal        = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "hosts_total"), "Amount of hosts present in configuration", nil, nil)
+	hostsCheckedTotal = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "hosts_checked"), "Amount of hosts checked", []string{"check_type"}, nil)
+	hostsStatus       = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "hosts_up_total"), "Amount of hosts in different states", []string{"status"}, nil)
+	// downtime seems like a separate entity from status
+	hostsDowntime = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "hosts_downtime_total"), "Amount of hosts in downtime", nil, nil)
 
 	// Services
 
-	servicesTotal                 = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "services_total"), "Amount of services present in configuration", nil, nil)
-	servicesActivelyCheckedTotal  = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "services_actively_checked_total"), "Amount of services actively checked", nil, nil)
-	servicesPassivelyCheckedTotal = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "services_passively_checked_total"), "Amount of services passively checked", nil, nil)
-	servicesOk                    = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "services_ok_total"), "Amount of services in 'up' state", nil, nil)
-	servicesWarn                  = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "services_warn_total"), "Amount of services in 'warn' state", nil, nil)
-	servicesCritical              = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "services_critical_total"), "Amount of services in 'critical' state", nil, nil)
-	servicesUnknown               = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "services_unknown_total"), "Amount of services in 'unknown' state", nil, nil)
-	servicesFlapping              = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "services_flapping_total"), "Amount of services in 'flapping' state", nil, nil)
-	servicesDowntime              = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "services_downtime_total"), "Amount of services in downtime", nil, nil)
+	servicesTotal        = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "services_total"), "Amount of services present in configuration", nil, nil)
+	servicesCheckedTotal = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "services_checked_total"), "Amount of services checked", []string{"check_type"}, nil)
+	servicesStatus       = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "services_ok_total"), "Amount of services in different states", []string{"status"}, nil)
+	servicesDowntime     = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "services_downtime_total"), "Amount of services in downtime", nil, nil)
 
 	// System
 	versionInfo = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "version_info"), "Nagios version information", []string{"version"}, nil)
@@ -119,22 +111,13 @@ func (e *Exporter) Describe(ch chan<- *prometheus.Desc) {
 	ch <- up
 	// Hosts
 	ch <- hostsTotal
-	ch <- hostsActivelyCheckedTotal
-	ch <- hostsPassivelyCheckedTotal
-	ch <- hostsUp
-	ch <- hostsDown
-	ch <- hostsUnreachable
-	ch <- hostsFlapping
+	ch <- hostsCheckedTotal
+	ch <- hostsStatus
 	ch <- hostsDowntime
 	// Services
 	ch <- servicesTotal
-	ch <- servicesActivelyCheckedTotal
-	ch <- servicesPassivelyCheckedTotal
-	ch <- servicesOk
-	ch <- servicesWarn
-	ch <- servicesCritical
-	ch <- servicesUnknown
-	ch <- servicesFlapping
+	ch <- servicesCheckedTotal
+	ch <- servicesStatus
 	ch <- servicesDowntime
 	// System
 	ch <- versionInfo
@@ -273,27 +256,27 @@ func (e *Exporter) QueryAPIsAndUpdateMetrics(ch chan<- prometheus.Metric) {
 	}
 
 	ch <- prometheus.MustNewConstMetric(
-		hostsActivelyCheckedTotal, prometheus.GaugeValue, float64(hostsActiveCheckCount),
+		hostsCheckedTotal, prometheus.GaugeValue, float64(hostsActiveCheckCount), "active",
 	)
 
 	ch <- prometheus.MustNewConstMetric(
-		hostsPassivelyCheckedTotal, prometheus.GaugeValue, float64(hostsPassiveCheckCount),
+		hostsCheckedTotal, prometheus.GaugeValue, float64(hostsPassiveCheckCount), "passive",
 	)
 
 	ch <- prometheus.MustNewConstMetric(
-		hostsUp, prometheus.GaugeValue, float64(hostsUpCount),
+		hostsStatus, prometheus.GaugeValue, float64(hostsUpCount), "up",
 	)
 
 	ch <- prometheus.MustNewConstMetric(
-		hostsDown, prometheus.GaugeValue, float64(hostsDownCount),
+		hostsStatus, prometheus.GaugeValue, float64(hostsDownCount), "down",
 	)
 
 	ch <- prometheus.MustNewConstMetric(
-		hostsUnreachable, prometheus.GaugeValue, float64(hostsUnreachableCount),
+		hostsStatus, prometheus.GaugeValue, float64(hostsUnreachableCount), "unreachable",
 	)
 
 	ch <- prometheus.MustNewConstMetric(
-		hostsFlapping, prometheus.GaugeValue, float64(hostsFlapCount),
+		hostsStatus, prometheus.GaugeValue, float64(hostsFlapCount), "flapping",
 	)
 
 	ch <- prometheus.MustNewConstMetric(
@@ -361,31 +344,31 @@ func (e *Exporter) QueryAPIsAndUpdateMetrics(ch chan<- prometheus.Metric) {
 	}
 
 	ch <- prometheus.MustNewConstMetric(
-		servicesActivelyCheckedTotal, prometheus.GaugeValue, float64(servicesActiveCheckCount),
+		servicesCheckedTotal, prometheus.GaugeValue, float64(servicesActiveCheckCount), "active",
 	)
 
 	ch <- prometheus.MustNewConstMetric(
-		servicesPassivelyCheckedTotal, prometheus.GaugeValue, float64(hostsPassiveCheckCount),
+		servicesCheckedTotal, prometheus.GaugeValue, float64(hostsPassiveCheckCount), "passive",
 	)
 
 	ch <- prometheus.MustNewConstMetric(
-		servicesOk, prometheus.GaugeValue, float64(servicesOkCount),
+		servicesStatus, prometheus.GaugeValue, float64(servicesOkCount), "ok",
 	)
 
 	ch <- prometheus.MustNewConstMetric(
-		servicesWarn, prometheus.GaugeValue, float64(servicesWarnCount),
+		servicesStatus, prometheus.GaugeValue, float64(servicesWarnCount), "warn",
 	)
 
 	ch <- prometheus.MustNewConstMetric(
-		servicesCritical, prometheus.GaugeValue, float64(servicesWarnCount),
+		servicesStatus, prometheus.GaugeValue, float64(servicesWarnCount), "critical",
 	)
 
 	ch <- prometheus.MustNewConstMetric(
-		servicesUnknown, prometheus.GaugeValue, float64(servicesUnknownCount),
+		servicesStatus, prometheus.GaugeValue, float64(servicesUnknownCount), "unknown",
 	)
 
 	ch <- prometheus.MustNewConstMetric(
-		servicesFlapping, prometheus.GaugeValue, float64(servicesFlapCount),
+		servicesStatus, prometheus.GaugeValue, float64(servicesFlapCount), "flapping",
 	)
 
 	ch <- prometheus.MustNewConstMetric(
