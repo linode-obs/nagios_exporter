@@ -14,3 +14,5 @@
 # nagios_exporter specific
 devconfig.toml
 main
+
+dist/
