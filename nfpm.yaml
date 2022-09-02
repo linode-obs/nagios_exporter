@@ -1,0 +1,36 @@
+# nfpm example config file
+#
+# check https://nfpm.goreleaser.com/configuration for detailed usage
+#
+name: "prometheus-nagios-exporter"
+arch: "amd64"
+platform: "linux"
+version: "v1.0.0"
+section: "default"
+priority: "extra"
+replaces: []
+provides: []
+depends: []
+recommends: []
+suggests: []
+conflicts: []
+maintainer: "Will Bollock <wbollock@gmail.com>"
+description: |
+  A Prometheus Nagios Exporter that provides information
+  on the current state of a Nagios application and configuration.
+homepage: "https://github.com/wbollock/nagios_exporter"
+license: "MIT"
+# TODO - changelog?
+#changelog: "changelog.yaml"
+contents:
+# provided by goreleaser
+- src: ./dist/nagios_exporter_linux_amd64_v1/nagios_exporter
+  dst: /usr/local/bin/nagios_exporter
+- src: ./nfpm/etc/config.toml
+  dst: /etc/nagios_exporter/config.toml
+  type: config
+- src: ./nfpm/systemd/prometheus-nagios-exporter.service
+  dst: /etc/systemd/system/prometheus-nagios-exporter.service
+  type: config
+scripts:
+  postinstall: ./nfpm/scripts/postinstall.sh
