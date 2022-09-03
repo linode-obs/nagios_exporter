@@ -4,30 +4,50 @@ A Prometheus exporter currently supporting:
 
 * Nagios XI
 
-## Build and Release Steps
+It includes metrics on the current state and configuration of Nagios. This includes the number of hosts, services, and information about their monitoring setup. For example, this exporter will output the number of flapping hosts, passive checks, or hosts in downtime.
 
-1. Build binaries with goreleaser:
+## Installation Instructions
 
-```bash
-goreleaser build --snapshot --rm-dist
+### Configuration
+
+Create a simple `config.toml` in `/etc/prometheus-nagios-exporter` with your Nagios API key:
+
+```toml
+# prometheus-nagios-exporter configuration
+
+APIKey = ""
 ```
 
-2. Use the resulting binaries in `./dist`, or create a deb/rpm packages with nfpm:
+By default this will point to localhost, but a remote address can be specified with `-web.remote-address string`. The default port is `9111`, but can be changed with `-web.listen-address`.
+
+### Debian/RPM package
+
+Substitute `{{ version }}` for your desired release.
 
 ```bash
-# deb example - can substitute with rpm
-nfpm package -p deb -t /tmp/
+wget https://github.com/wbollock/nagios_exporter/releases/download/v{{ version }}/prometheus-nagios-exporter_{{ version }}_linux_amd64.deb
+dpkg -i prometheus-nagios-exporter_{{ version }}_linux_amd64.deb
 ```
 
-3. Tag release and push:
+### Binary
 
 ```bash
-git tag -a v0.1.0 -m "First release"
-git push origin v0.1.0
-goreleaser release
+wget https://github.com/wbollock/nagios_exporter/releases/download/v{{ version }}/nagios_exporter_{{ version }}_Linux_x86_64.tar.gz 
+tar xvf nagios_exporter_{{ version }}_Linux_x86_64.tar.gz
+./nagios_exporter/prometheus-nagios-exporter
 ```
 
-## Resources
+### Source
+
+```bash
+wget https://github.com/wbollock/nagios_exporter/archive/refs/tags/v{{ version }}.tar.gz
+tar xvf nagios_expoter-{{ version }}.tar.gz
+cd ./nagios_expoter-{{ version }}
+go build main.go
+./main.go
+```
+
+## Resources Used
 
 * [haproxy_expoter](https://github.com/prometheus/haproxy_exporter/blob/main/haproxy_exporter.go)
 * [15 Steps to Write an Application Prometheus Exporter in GO](https://medium.com/teamzerolabs/15-steps-to-write-an-application-prometheus-exporter-in-go-9746b4520e26)
