@@ -1,5 +1,8 @@
 # nagios_exporter
 
+[![golangci-lint](https://github.com/wbollock/nagios_exporter/actions/workflows/golangci-lint.yaml/badge.svg)](https://github.com/wbollock/nagios_exporter/actions/workflows/golangci-lint.yaml)
+[![Go Report Card](https://goreportcard.com/badge/github.com/wbollock/nagios_exporter)][goreportcard]
+
 A Prometheus exporter currently supporting:
 
 * Nagios XI
