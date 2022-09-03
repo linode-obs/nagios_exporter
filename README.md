@@ -21,7 +21,13 @@ Create a simple `config.toml` in `/etc/prometheus-nagios-exporter` with your Nag
 APIKey = ""
 ```
 
-By default this will point to localhost, but a remote address can be specified with `-web.remote-address string`. The default port is `9111`, but can be changed with `-web.listen-address`.
+By default this will point to localhost, but a remote address can be specified with `--web.remote-address`. The default port is `9111`, but can be changed with `--web.listen-address`.
+
+To see all available configuration flags:
+
+```bash
+./prometheus-nagios-exporter -h
+```
 
 ### Debian/RPM package
 
@@ -44,10 +50,18 @@ tar xvf nagios_exporter_{{ version }}_Linux_x86_64.tar.gz
 
 ```bash
 wget https://github.com/wbollock/nagios_exporter/archive/refs/tags/v{{ version }}.tar.gz
-tar xvf nagios_expoter-{{ version }}.tar.gz
-cd ./nagios_expoter-{{ version }}
+tar xvf nagios_exporter-{{ version }}.tar.gz
+cd ./nagios_exporter-{{ version }}
 go build main.go
 ./main.go
+```
+
+## Troubleshooting
+
+Ensure `nagios_up` returns `1`, otherwise please check your API key and Nagios reachability, such as:
+
+```bash
+curl -GET "http://<nagios_url>/nagiosxi/api/v1/objects/host?apikey=<apikey>&pretty=1"
 ```
 
 ## Resources Used
