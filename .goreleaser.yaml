@@ -40,7 +40,6 @@ nfpms:
      priority: "extra"
      replaces: []
      dependencies: []
-     provides: []
      recommends: []
      suggests: []
      conflicts: []
