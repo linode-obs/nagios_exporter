@@ -17,6 +17,18 @@ Practical use cases for this exporter may include:
 
 This exporter does not output Nagios check results as Prometheus metrics; it is designed to export metrics of the Nagios monitoring server itself.
 
+## Table of Contents
+- [nagios_exporter](#nagios_exporter)
+  - [Table of Contents](#table-of-contents)
+  - [Installation Instructions](#installation-instructions)
+    - [Configuration](#configuration)
+    - [Debian/RPM package](#debianrpm-package)
+    - [Binary](#binary)
+    - [Source](#source)
+  - [Troubleshooting](#troubleshooting)
+  - [Grafana](#grafana)
+  - [Resources Used](#resources-used)
+
 ## Installation Instructions
 
 ### Configuration
