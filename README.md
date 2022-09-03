@@ -54,8 +54,8 @@ To see all available configuration flags:
 Substitute `{{ version }}` for your desired release.
 
 ```bash
-wget https://github.com/wbollock/nagios_exporter/releases/download/v{{ version }}/prometheus-nagios-exporter_{{ version }}_linux_amd64.deb
-dpkg -i prometheus-nagios-exporter_{{ version }}_linux_amd64.deb
+wget https://github.com/wbollock/nagios_exporter/releases/download/v{{ version }}/prometheus-nagios-exporter_{{ version }}_linux_amd64.{deb,rpm}
+{dpkg,rpm} -i prometheus-nagios-exporter_{{ version }}_linux_amd64.{deb,rpm}
 ```
 
 ### Binary
