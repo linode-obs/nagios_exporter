@@ -385,7 +385,7 @@ func main() {
 			"Path under which to expose metrics")
 		remoteAddress = flag.String("web.remote-address", "localhost",
 			"Nagios application address")
-		configPath = flag.String("config.path", "/etc/nagios_exporter/config.toml",
+		configPath = flag.String("config.path", "/etc/prometheus-nagios-exporter/config.toml",
 			"Config file path")
 		logLevel = flag.String("log.level", "info",
 			"Minimum Log level [debug, info]")
