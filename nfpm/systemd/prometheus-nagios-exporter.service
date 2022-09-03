@@ -9,7 +9,7 @@ EnvironmentFile=-/etc/default/prometheus-nagios-exporter
 User=root
 Group=root
 Type=simple
-ExecStart=/usr/local/bin/nagios_exporter $ARGS
+ExecStart=/usr/local/bin/prometheus-nagios-exporter $ARGS
 
 [Install]
 WantedBy=multi-user.target
