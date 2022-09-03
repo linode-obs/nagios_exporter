@@ -1,4 +1,8 @@
-# nagiosxi_exporter
+# nagios_exporter
+
+A Prometheus exporter currently supporting:
+
+* Nagios XI
 
 ## Build and Release Steps
 
@@ -17,12 +21,11 @@ nfpm package -p deb -t /tmp/
 
 3. Tag release and push:
 
-```
+```bash
 git tag -a v0.1.0 -m "First release"
 git push origin v0.1.0
 goreleaser release
 ```
-
 
 ## Resources
 
