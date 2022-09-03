@@ -9,6 +9,14 @@ A Prometheus exporter currently supporting:
 
 It includes metrics on the current state and configuration of Nagios. This includes the number of hosts, services, and information about their monitoring setup. For example, this exporter will output the number of flapping hosts, passive checks, or hosts in downtime.
 
+Practical use cases for this exporter may include:
+
+* A Nagios overview - see broad metrics on hosts and services
+* Visualize changes in host status after making adjustments to Nagios checks
+* Detect an uptick in `unknown` check results after converting many active checks to passive
+
+This exporter does not output Nagios check results as Prometheus metrics; it is designed to export metrics of the Nagios monitoring server itself.
+
 ## Installation Instructions
 
 ### Configuration
