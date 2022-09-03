@@ -64,6 +64,12 @@ Ensure `nagios_up` returns `1`, otherwise please check your API key and Nagios r
 curl -GET "http://<nagios_url>/nagiosxi/api/v1/objects/host?apikey=<apikey>&pretty=1"
 ```
 
+## Grafana
+
+Import the [dashboard](grafana/dashboard.json) template ([instructions](https://grafana.com/docs/grafana/v9.0/dashboards/export-import/#import-dashboard)).
+
+ ![grafana](img/grafana.png)
+
 ## Resources Used
 
 * [haproxy_expoter](https://github.com/prometheus/haproxy_exporter/blob/main/haproxy_exporter.go)

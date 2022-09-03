@@ -1,4 +1,53 @@
 {
+    "__inputs": [
+      {
+        "name": "DS_PROMETHEUS",
+        "label": "Prometheus",
+        "description": "",
+        "type": "datasource",
+        "pluginId": "prometheus",
+        "pluginName": "Prometheus"
+      }
+    ],
+    "__elements": [],
+    "__requires": [
+      {
+        "type": "grafana",
+        "id": "grafana",
+        "name": "Grafana",
+        "version": "v1.0"
+      },
+      {
+        "type": "panel",
+        "id": "piechart",
+        "name": "Pie chart",
+        "version": ""
+      },
+      {
+        "type": "datasource",
+        "id": "prometheus",
+        "name": "Prometheus",
+        "version": "1.0.0"
+      },
+      {
+        "type": "panel",
+        "id": "stat",
+        "name": "Stat",
+        "version": ""
+      },
+      {
+        "type": "panel",
+        "id": "text",
+        "name": "Text",
+        "version": ""
+      },
+      {
+        "type": "panel",
+        "id": "timeseries",
+        "name": "Time series",
+        "version": ""
+      }
+    ],
     "annotations": {
       "list": [
         {
@@ -24,8 +73,8 @@
     "editable": true,
     "fiscalYearStartMonth": 0,
     "graphTooltip": 0,
-    "id": 15,
-    "iteration": 1662216892542,
+    "id": null,
+    "iteration": 1662221079141,
     "links": [],
     "liveNow": false,
     "panels": [
@@ -45,7 +94,7 @@
       {
         "datasource": {
           "type": "prometheus",
-          "uid": "1aP5u7yMk"
+          "uid": "${DS_PROMETHEUS}"
         },
         "fieldConfig": {
           "defaults": {
@@ -89,7 +138,7 @@
           "overrides": []
         },
         "gridPos": {
-          "h": 3,
+          "h": 2,
           "w": 4,
           "x": 0,
           "y": 1
@@ -117,7 +166,7 @@
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "1aP5u7yMk"
+              "uid": "${DS_PROMETHEUS}"
             },
             "expr": "nagios_up",
             "format": "time_series",
@@ -134,38 +183,378 @@
       },
       {
         "datasource": {
-          "type": "grafana",
-          "uid": "grafana"
+          "type": "prometheus",
+          "uid": "${DS_PROMETHEUS}"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "viz": false
+              }
+            },
+            "mappings": []
+          },
+          "overrides": []
         },
         "gridPos": {
-          "h": 4,
+          "h": 5,
           "w": 4,
           "x": 4,
           "y": 1
         },
-        "id": 12,
+        "id": 24,
         "options": {
-          "content": "<center><h1>${version}</h1></center>",
-          "mode": "markdown"
+          "displayLabels": [],
+          "legend": {
+            "displayMode": "list",
+            "placement": "right",
+            "values": [
+              "percent"
+            ]
+          },
+          "pieType": "pie",
+          "reduceOptions": {
+            "calcs": [
+              "lastNotNull"
+            ],
+            "fields": "",
+            "values": false
+          },
+          "tooltip": {
+            "mode": "single",
+            "sort": "none"
+          }
         },
-        "pluginVersion": "v1.0",
         "targets": [
           {
             "datasource": {
-              "type": "datasource",
-              "uid": "grafana"
+              "type": "prometheus",
+              "uid": "${DS_PROMETHEUS}"
             },
+            "editorMode": "code",
+            "exemplar": false,
+            "expr": "nagios_services_status_total{job=\"$job\", instance=\"$instance\", status=\"ok\"}",
+            "instant": true,
+            "legendFormat": "{{status}}",
+            "range": false,
             "refId": "A"
+          },
+          {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "${DS_PROMETHEUS}"
+            },
+            "editorMode": "code",
+            "expr": "nagios_services_status_total{job=\"$job\", instance=\"$instance\", status=\"warn\"}",
+            "hide": false,
+            "legendFormat": "{{status}}",
+            "range": true,
+            "refId": "C"
+          },
+          {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "${DS_PROMETHEUS}"
+            },
+            "editorMode": "code",
+            "expr": "nagios_services_status_total{job=\"$job\", instance=\"$instance\", status=\"critical\"}",
+            "hide": false,
+            "legendFormat": "{{status}}",
+            "range": true,
+            "refId": "B"
+          },
+          {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "${DS_PROMETHEUS}"
+            },
+            "editorMode": "code",
+            "expr": "nagios_services_status_total{job=\"$job\", instance=\"$instance\", status=\"flapping\"}",
+            "hide": false,
+            "legendFormat": "{{status}}",
+            "range": true,
+            "refId": "D"
           }
         ],
-        "title": "Nagios Version",
-        "transparent": true,
-        "type": "text"
+        "title": "Service Status",
+        "type": "piechart"
       },
       {
         "datasource": {
           "type": "prometheus",
-          "uid": "1aP5u7yMk"
+          "uid": "${DS_PROMETHEUS}"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "viz": false
+              }
+            },
+            "mappings": []
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 5,
+          "w": 4,
+          "x": 8,
+          "y": 1
+        },
+        "id": 26,
+        "options": {
+          "displayLabels": [],
+          "legend": {
+            "displayMode": "list",
+            "placement": "right",
+            "values": [
+              "percent"
+            ]
+          },
+          "pieType": "pie",
+          "reduceOptions": {
+            "calcs": [
+              "lastNotNull"
+            ],
+            "fields": "",
+            "values": false
+          },
+          "tooltip": {
+            "mode": "single",
+            "sort": "none"
+          }
+        },
+        "targets": [
+          {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "${DS_PROMETHEUS}"
+            },
+            "editorMode": "code",
+            "exemplar": false,
+            "expr": "nagios_hosts_status_total{job=\"$job\", instance=\"$instance\", status=\"up\"}",
+            "instant": true,
+            "legendFormat": "{{status}}",
+            "range": false,
+            "refId": "A"
+          },
+          {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "${DS_PROMETHEUS}"
+            },
+            "editorMode": "code",
+            "expr": "nagios_hosts_status_total{job=\"$job\", instance=\"$instance\", status=\"down\"}",
+            "hide": false,
+            "legendFormat": "{{status}}",
+            "range": true,
+            "refId": "B"
+          },
+          {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "${DS_PROMETHEUS}"
+            },
+            "editorMode": "code",
+            "expr": "nagios_hosts_status_total{job=\"$job\", instance=\"$instance\", status=\"unreachable\"}",
+            "hide": false,
+            "legendFormat": "{{status}}",
+            "range": true,
+            "refId": "C"
+          },
+          {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "${DS_PROMETHEUS}"
+            },
+            "editorMode": "code",
+            "expr": "nagios_hosts_status_total{job=\"$job\", instance=\"$instance\", status=\"flapping\"}",
+            "hide": false,
+            "legendFormat": "{{status}}",
+            "range": true,
+            "refId": "D"
+          }
+        ],
+        "title": "Host Status",
+        "type": "piechart"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${DS_PROMETHEUS}"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "viz": false
+              }
+            },
+            "mappings": []
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 5,
+          "w": 4,
+          "x": 12,
+          "y": 1
+        },
+        "id": 22,
+        "options": {
+          "displayLabels": [],
+          "legend": {
+            "displayMode": "list",
+            "placement": "right",
+            "values": [
+              "percent"
+            ]
+          },
+          "pieType": "pie",
+          "reduceOptions": {
+            "calcs": [
+              "lastNotNull"
+            ],
+            "fields": "",
+            "values": false
+          },
+          "tooltip": {
+            "mode": "single",
+            "sort": "none"
+          }
+        },
+        "targets": [
+          {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "${DS_PROMETHEUS}"
+            },
+            "editorMode": "code",
+            "expr": "nagios_hosts_checked_total{job=\"$job\", instance=\"$instance\", check_type=\"active\"}",
+            "hide": false,
+            "legendFormat": "{{check_type}}",
+            "range": true,
+            "refId": "A"
+          },
+          {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "${DS_PROMETHEUS}"
+            },
+            "editorMode": "code",
+            "exemplar": false,
+            "expr": "nagios_hosts_checked_total{job=\"$job\", instance=\"$instance\", check_type=\"passive\"}",
+            "hide": false,
+            "instant": true,
+            "legendFormat": "{{check_type}}",
+            "range": false,
+            "refId": "B"
+          }
+        ],
+        "title": "Check Types for Hosts",
+        "type": "piechart"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${DS_PROMETHEUS}"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "viz": false
+              }
+            },
+            "mappings": []
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 5,
+          "w": 4,
+          "x": 16,
+          "y": 1
+        },
+        "id": 23,
+        "options": {
+          "displayLabels": [],
+          "legend": {
+            "displayMode": "list",
+            "placement": "right",
+            "values": [
+              "percent"
+            ]
+          },
+          "pieType": "pie",
+          "reduceOptions": {
+            "calcs": [
+              "lastNotNull"
+            ],
+            "fields": "",
+            "values": false
+          },
+          "tooltip": {
+            "mode": "single",
+            "sort": "none"
+          }
+        },
+        "targets": [
+          {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "${DS_PROMETHEUS}"
+            },
+            "editorMode": "code",
+            "exemplar": false,
+            "expr": "nagios_services_checked_total{job=\"$job\", instance=\"$instance\", check_type=\"active\"}",
+            "hide": false,
+            "instant": true,
+            "legendFormat": "{{check_type}}",
+            "range": false,
+            "refId": "A"
+          },
+          {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "${DS_PROMETHEUS}"
+            },
+            "editorMode": "code",
+            "expr": "nagios_services_checked_total{job=\"$job\", instance=\"$instance\", check_type=\"passive\"}",
+            "hide": false,
+            "legendFormat": "{{check_type}}",
+            "range": true,
+            "refId": "C"
+          }
+        ],
+        "title": "Check Types for Services",
+        "type": "piechart"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${DS_PROMETHEUS}"
         },
         "fieldConfig": {
           "defaults": {
@@ -190,9 +579,9 @@
           "overrides": []
         },
         "gridPos": {
-          "h": 4,
-          "w": 16,
-          "x": 8,
+          "h": 5,
+          "w": 4,
+          "x": 20,
           "y": 1
         },
         "id": 9,
@@ -215,24 +604,28 @@
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "1aP5u7yMk"
+              "uid": "${DS_PROMETHEUS}"
             },
             "editorMode": "code",
-            "expr": "nagios_services_ok_total{job=\"$job\", instance=\"$instance\", status=\"flapping\"}",
+            "exemplar": false,
+            "expr": "nagios_services_status_total{job=\"$job\", instance=\"$instance\", status=\"flapping\"}",
+            "instant": true,
             "legendFormat": "Services",
-            "range": true,
+            "range": false,
             "refId": "A"
           },
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "1aP5u7yMk"
+              "uid": "${DS_PROMETHEUS}"
             },
             "editorMode": "code",
-            "expr": "nagios_hosts_up_total{job=\"$job\", instance=\"$instance\", status=\"flapping\"}",
+            "exemplar": false,
+            "expr": "nagios_hosts_status_total{job=\"$job\", instance=\"$instance\", status=\"flapping\"}",
             "hide": false,
+            "instant": true,
             "legendFormat": "Hosts",
-            "range": true,
+            "range": false,
             "refId": "B"
           }
         ],
@@ -240,12 +633,42 @@
         "type": "stat"
       },
       {
+        "datasource": {
+          "type": "grafana",
+          "uid": "grafana"
+        },
+        "gridPos": {
+          "h": 3,
+          "w": 4,
+          "x": 0,
+          "y": 3
+        },
+        "id": 12,
+        "options": {
+          "content": "<center><h1>${version}</h1></center>",
+          "mode": "markdown"
+        },
+        "pluginVersion": "v1.0",
+        "targets": [
+          {
+            "datasource": {
+              "type": "datasource",
+              "uid": "grafana"
+            },
+            "refId": "A"
+          }
+        ],
+        "title": "Nagios Version",
+        "transparent": true,
+        "type": "text"
+      },
+      {
         "collapsed": false,
         "gridPos": {
           "h": 1,
           "w": 24,
           "x": 0,
-          "y": 5
+          "y": 6
         },
         "id": 11,
         "panels": [],
@@ -255,7 +678,7 @@
       {
         "datasource": {
           "type": "prometheus",
-          "uid": "1aP5u7yMk"
+          "uid": "${DS_PROMETHEUS}"
         },
         "fieldConfig": {
           "defaults": {
@@ -275,7 +698,7 @@
                 "viz": false
               },
               "lineInterpolation": "linear",
-              "lineWidth": 1,
+              "lineWidth": 4,
               "pointSize": 5,
               "scaleDistribution": {
                 "type": "linear"
@@ -308,10 +731,10 @@
           "overrides": []
         },
         "gridPos": {
-          "h": 9,
-          "w": 12,
+          "h": 8,
+          "w": 6,
           "x": 0,
-          "y": 6
+          "y": 7
         },
         "id": 2,
         "options": {
@@ -329,7 +752,7 @@
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "1aP5u7yMk"
+              "uid": "${DS_PROMETHEUS}"
             },
             "editorMode": "code",
             "expr": "nagios_services_total{job=\"$job\", instance=\"$instance\"}",
@@ -340,7 +763,7 @@
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "1aP5u7yMk"
+              "uid": "${DS_PROMETHEUS}"
             },
             "editorMode": "code",
             "expr": "nagios_hosts_total{job=\"$job\", instance=\"$instance\"}",
@@ -356,41 +779,10 @@
       {
         "datasource": {
           "type": "prometheus",
-          "uid": "1aP5u7yMk"
+          "uid": "${DS_PROMETHEUS}"
         },
         "fieldConfig": {
           "defaults": {
-            "color": {
-              "mode": "palette-classic"
-            },
-            "custom": {
-              "axisLabel": "",
-              "axisPlacement": "auto",
-              "barAlignment": 0,
-              "drawStyle": "line",
-              "fillOpacity": 0,
-              "gradientMode": "none",
-              "hideFrom": {
-                "legend": false,
-                "tooltip": false,
-                "viz": false
-              },
-              "lineInterpolation": "linear",
-              "lineWidth": 1,
-              "pointSize": 5,
-              "scaleDistribution": {
-                "type": "linear"
-              },
-              "showPoints": "auto",
-              "spanNulls": false,
-              "stacking": {
-                "group": "A",
-                "mode": "none"
-              },
-              "thresholdsStyle": {
-                "mode": "off"
-              }
-            },
             "mappings": [],
             "thresholds": {
               "mode": "absolute",
@@ -404,37 +796,41 @@
                   "value": 80
                 }
               ]
-            }
+            },
+            "unit": "short"
           },
           "overrides": []
         },
         "gridPos": {
-          "h": 9,
-          "w": 12,
-          "x": 12,
-          "y": 6
+          "h": 8,
+          "w": 3,
+          "x": 6,
+          "y": 7
         },
-        "id": 3,
+        "id": 27,
         "options": {
-          "legend": {
-            "calcs": [],
-            "displayMode": "list",
-            "placement": "bottom"
+          "colorMode": "none",
+          "graphMode": "none",
+          "justifyMode": "auto",
+          "orientation": "auto",
+          "reduceOptions": {
+            "calcs": [
+              "lastNotNull"
+            ],
+            "fields": "",
+            "values": false
           },
-          "tooltip": {
-            "mode": "single",
-            "sort": "none"
-          }
+          "textMode": "auto"
         },
         "pluginVersion": "v1.0",
         "targets": [
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "1aP5u7yMk"
+              "uid": "${DS_PROMETHEUS}"
             },
             "editorMode": "code",
-            "expr": "nagios_services_downtime_total{job=\"$job\", instance=\"$instance\"}",
+            "expr": "nagios_services_total{job=\"$job\", instance=\"$instance\"}",
             "legendFormat": "Services",
             "range": true,
             "refId": "A"
@@ -442,7 +838,84 @@
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "1aP5u7yMk"
+              "uid": "${DS_PROMETHEUS}"
+            },
+            "editorMode": "code",
+            "expr": "nagios_hosts_total{job=\"$job\", instance=\"$instance\"}",
+            "hide": false,
+            "legendFormat": "Hosts",
+            "range": true,
+            "refId": "B"
+          }
+        ],
+        "title": "Total Number",
+        "type": "stat"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${DS_PROMETHEUS}"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                },
+                {
+                  "color": "red",
+                  "value": 80
+                }
+              ]
+            },
+            "unit": "short"
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 3,
+          "x": 9,
+          "y": 7
+        },
+        "id": 3,
+        "options": {
+          "colorMode": "none",
+          "graphMode": "none",
+          "justifyMode": "auto",
+          "orientation": "auto",
+          "reduceOptions": {
+            "calcs": [
+              "lastNotNull"
+            ],
+            "fields": "",
+            "values": false
+          },
+          "textMode": "auto"
+        },
+        "pluginVersion": "v1.0",
+        "targets": [
+          {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "${DS_PROMETHEUS}"
+            },
+            "editorMode": "code",
+            "exemplar": false,
+            "expr": "nagios_services_downtime_total{job=\"$job\", instance=\"$instance\"}",
+            "instant": true,
+            "legendFormat": "Services",
+            "range": false,
+            "refId": "A"
+          },
+          {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "${DS_PROMETHEUS}"
             },
             "editorMode": "code",
             "expr": "nagios_hosts_downtime_total{job=\"$job\", instance=\"$instance\"}",
@@ -452,13 +925,524 @@
             "refId": "B"
           }
         ],
-        "title": "Downtime for Hosts and Services",
-        "type": "timeseries"
+        "title": "Downtime",
+        "type": "stat"
       },
       {
         "datasource": {
           "type": "prometheus",
-          "uid": "1aP5u7yMk"
+          "uid": "${DS_PROMETHEUS}"
+        },
+        "description": "",
+        "fieldConfig": {
+          "defaults": {
+            "mappings": [
+              {
+                "options": {
+                  "warn": {
+                    "color": "yellow",
+                    "index": 0
+                  }
+                },
+                "type": "value"
+              }
+            ],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                }
+              ]
+            },
+            "unit": "short"
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 4,
+          "w": 3,
+          "x": 12,
+          "y": 7
+        },
+        "id": 30,
+        "options": {
+          "colorMode": "value",
+          "graphMode": "none",
+          "justifyMode": "center",
+          "orientation": "auto",
+          "reduceOptions": {
+            "calcs": [
+              "lastNotNull"
+            ],
+            "fields": "",
+            "values": false
+          },
+          "textMode": "value"
+        },
+        "pluginVersion": "v1.0",
+        "targets": [
+          {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "${DS_PROMETHEUS}"
+            },
+            "editorMode": "code",
+            "exemplar": false,
+            "expr": "nagios_services_status_total{job=\"$job\", instance=\"$instance\", status=\"ok\"}",
+            "hide": false,
+            "instant": true,
+            "legendFormat": "__auto",
+            "range": false,
+            "refId": "A"
+          }
+        ],
+        "title": "Services - OK",
+        "type": "stat"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${DS_PROMETHEUS}"
+        },
+        "description": "",
+        "fieldConfig": {
+          "defaults": {
+            "mappings": [
+              {
+                "options": {
+                  "warn": {
+                    "color": "yellow",
+                    "index": 0
+                  }
+                },
+                "type": "value"
+              }
+            ],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "yellow",
+                  "value": null
+                }
+              ]
+            },
+            "unit": "short"
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 4,
+          "w": 3,
+          "x": 15,
+          "y": 7
+        },
+        "id": 31,
+        "options": {
+          "colorMode": "value",
+          "graphMode": "none",
+          "justifyMode": "center",
+          "orientation": "auto",
+          "reduceOptions": {
+            "calcs": [
+              "lastNotNull"
+            ],
+            "fields": "",
+            "values": false
+          },
+          "textMode": "value"
+        },
+        "pluginVersion": "v1.0",
+        "targets": [
+          {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "${DS_PROMETHEUS}"
+            },
+            "editorMode": "code",
+            "exemplar": false,
+            "expr": "nagios_services_status_total{job=\"$job\", instance=\"$instance\", status=\"warn\"}",
+            "hide": false,
+            "instant": true,
+            "legendFormat": "__auto",
+            "range": false,
+            "refId": "A"
+          }
+        ],
+        "title": "Services - Warn",
+        "type": "stat"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${DS_PROMETHEUS}"
+        },
+        "description": "",
+        "fieldConfig": {
+          "defaults": {
+            "mappings": [
+              {
+                "options": {
+                  "warn": {
+                    "color": "yellow",
+                    "index": 0
+                  }
+                },
+                "type": "value"
+              }
+            ],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "red",
+                  "value": null
+                }
+              ]
+            },
+            "unit": "short"
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 4,
+          "w": 3,
+          "x": 18,
+          "y": 7
+        },
+        "id": 33,
+        "options": {
+          "colorMode": "value",
+          "graphMode": "none",
+          "justifyMode": "center",
+          "orientation": "auto",
+          "reduceOptions": {
+            "calcs": [
+              "lastNotNull"
+            ],
+            "fields": "",
+            "values": false
+          },
+          "textMode": "value"
+        },
+        "pluginVersion": "v1.0",
+        "targets": [
+          {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "${DS_PROMETHEUS}"
+            },
+            "editorMode": "code",
+            "exemplar": false,
+            "expr": "nagios_services_status_total{job=\"$job\", instance=\"$instance\", status=\"critical\"}",
+            "hide": false,
+            "instant": true,
+            "legendFormat": "__auto",
+            "range": false,
+            "refId": "A"
+          }
+        ],
+        "title": "Services - Critical",
+        "type": "stat"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${DS_PROMETHEUS}"
+        },
+        "description": "",
+        "fieldConfig": {
+          "defaults": {
+            "mappings": [
+              {
+                "options": {
+                  "warn": {
+                    "color": "yellow",
+                    "index": 0
+                  }
+                },
+                "type": "value"
+              }
+            ],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "orange",
+                  "value": null
+                }
+              ]
+            },
+            "unit": "short"
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 4,
+          "w": 3,
+          "x": 21,
+          "y": 7
+        },
+        "id": 32,
+        "options": {
+          "colorMode": "value",
+          "graphMode": "none",
+          "justifyMode": "center",
+          "orientation": "auto",
+          "reduceOptions": {
+            "calcs": [
+              "lastNotNull"
+            ],
+            "fields": "",
+            "values": false
+          },
+          "textMode": "value"
+        },
+        "pluginVersion": "v1.0",
+        "targets": [
+          {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "${DS_PROMETHEUS}"
+            },
+            "editorMode": "code",
+            "exemplar": false,
+            "expr": "nagios_services_status_total{job=\"$job\", instance=\"$instance\", status=\"unknown\"}",
+            "hide": false,
+            "instant": true,
+            "legendFormat": "__auto",
+            "range": false,
+            "refId": "A"
+          }
+        ],
+        "title": "Services - Unknown",
+        "type": "stat"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${DS_PROMETHEUS}"
+        },
+        "description": "",
+        "fieldConfig": {
+          "defaults": {
+            "mappings": [
+              {
+                "options": {
+                  "warn": {
+                    "color": "yellow",
+                    "index": 0
+                  }
+                },
+                "type": "value"
+              }
+            ],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                }
+              ]
+            },
+            "unit": "short"
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 4,
+          "w": 4,
+          "x": 12,
+          "y": 11
+        },
+        "id": 34,
+        "options": {
+          "colorMode": "value",
+          "graphMode": "none",
+          "justifyMode": "center",
+          "orientation": "auto",
+          "reduceOptions": {
+            "calcs": [
+              "lastNotNull"
+            ],
+            "fields": "",
+            "values": false
+          },
+          "textMode": "value"
+        },
+        "pluginVersion": "v1.0",
+        "targets": [
+          {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "${DS_PROMETHEUS}"
+            },
+            "editorMode": "code",
+            "exemplar": false,
+            "expr": "nagios_hosts_status_total{job=\"$job\", instance=\"$instance\", status=\"up\"}",
+            "hide": false,
+            "instant": true,
+            "legendFormat": "__auto",
+            "range": false,
+            "refId": "A"
+          }
+        ],
+        "title": "Hosts - Up",
+        "type": "stat"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${DS_PROMETHEUS}"
+        },
+        "description": "",
+        "fieldConfig": {
+          "defaults": {
+            "mappings": [
+              {
+                "options": {
+                  "warn": {
+                    "color": "yellow",
+                    "index": 0
+                  }
+                },
+                "type": "value"
+              }
+            ],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "red",
+                  "value": null
+                }
+              ]
+            },
+            "unit": "short"
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 4,
+          "w": 4,
+          "x": 16,
+          "y": 11
+        },
+        "id": 35,
+        "options": {
+          "colorMode": "value",
+          "graphMode": "none",
+          "justifyMode": "center",
+          "orientation": "auto",
+          "reduceOptions": {
+            "calcs": [
+              "lastNotNull"
+            ],
+            "fields": "",
+            "values": false
+          },
+          "textMode": "value"
+        },
+        "pluginVersion": "v1.0",
+        "targets": [
+          {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "${DS_PROMETHEUS}"
+            },
+            "editorMode": "code",
+            "exemplar": false,
+            "expr": "nagios_hosts_status_total{job=\"$job\", instance=\"$instance\", status=\"down\"}",
+            "hide": false,
+            "instant": true,
+            "legendFormat": "__auto",
+            "range": false,
+            "refId": "A"
+          }
+        ],
+        "title": "Hosts - Down",
+        "type": "stat"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${DS_PROMETHEUS}"
+        },
+        "description": "",
+        "fieldConfig": {
+          "defaults": {
+            "mappings": [
+              {
+                "options": {
+                  "warn": {
+                    "color": "yellow",
+                    "index": 0
+                  }
+                },
+                "type": "value"
+              }
+            ],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "orange",
+                  "value": null
+                }
+              ]
+            },
+            "unit": "short"
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 4,
+          "w": 4,
+          "x": 20,
+          "y": 11
+        },
+        "id": 36,
+        "options": {
+          "colorMode": "value",
+          "graphMode": "none",
+          "justifyMode": "center",
+          "orientation": "auto",
+          "reduceOptions": {
+            "calcs": [
+              "lastNotNull"
+            ],
+            "fields": "",
+            "values": false
+          },
+          "textMode": "value"
+        },
+        "pluginVersion": "v1.0",
+        "targets": [
+          {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "${DS_PROMETHEUS}"
+            },
+            "editorMode": "code",
+            "exemplar": false,
+            "expr": "nagios_hosts_status_total{job=\"$job\", instance=\"$instance\", status=\"unreachable\"}",
+            "hide": false,
+            "instant": true,
+            "legendFormat": "__auto",
+            "range": false,
+            "refId": "A"
+          }
+        ],
+        "title": "Hosts - Unreachable",
+        "type": "stat"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${DS_PROMETHEUS}"
         },
         "fieldConfig": {
           "defaults": {
@@ -478,7 +1462,7 @@
                 "viz": false
               },
               "lineInterpolation": "linear",
-              "lineWidth": 1,
+              "lineWidth": 4,
               "pointSize": 5,
               "scaleDistribution": {
                 "type": "linear"
@@ -532,10 +1516,10 @@
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "1aP5u7yMk"
+              "uid": "${DS_PROMETHEUS}"
             },
             "editorMode": "code",
-            "expr": "nagios_services_ok_total{job=\"$job\", instance=\"$instance\", status=\"ok\"}",
+            "expr": "nagios_services_status_total{job=\"$job\", instance=\"$instance\", status=\"ok\"}",
             "legendFormat": "{{status}}",
             "range": true,
             "refId": "A"
@@ -543,10 +1527,10 @@
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "1aP5u7yMk"
+              "uid": "${DS_PROMETHEUS}"
             },
             "editorMode": "code",
-            "expr": "nagios_services_ok_total{job=\"$job\", instance=\"$instance\", status=\"warn\"}",
+            "expr": "nagios_services_status_total{job=\"$job\", instance=\"$instance\", status=\"warn\"}",
             "hide": false,
             "legendFormat": "{{status}}",
             "range": true,
@@ -555,10 +1539,10 @@
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "1aP5u7yMk"
+              "uid": "${DS_PROMETHEUS}"
             },
             "editorMode": "code",
-            "expr": "nagios_services_ok_total{job=\"$job\", instance=\"$instance\", status=\"critical\"}",
+            "expr": "nagios_services_status_total{job=\"$job\", instance=\"$instance\", status=\"critical\"}",
             "hide": false,
             "legendFormat": "{{status}}",
             "range": true,
@@ -567,10 +1551,10 @@
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "1aP5u7yMk"
+              "uid": "${DS_PROMETHEUS}"
             },
             "editorMode": "code",
-            "expr": "nagios_services_ok_total{job=\"$job\", instance=\"$instance\", status=\"flapping\"}",
+            "expr": "nagios_services_status_total{job=\"$job\", instance=\"$instance\", status=\"flapping\"}",
             "hide": false,
             "legendFormat": "{{status}}",
             "range": true,
@@ -583,7 +1567,7 @@
       {
         "datasource": {
           "type": "prometheus",
-          "uid": "1aP5u7yMk"
+          "uid": "${DS_PROMETHEUS}"
         },
         "fieldConfig": {
           "defaults": {
@@ -603,7 +1587,7 @@
                 "viz": false
               },
               "lineInterpolation": "linear",
-              "lineWidth": 1,
+              "lineWidth": 4,
               "pointSize": 5,
               "scaleDistribution": {
                 "type": "linear"
@@ -657,10 +1641,10 @@
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "1aP5u7yMk"
+              "uid": "${DS_PROMETHEUS}"
             },
             "editorMode": "code",
-            "expr": "nagios_hosts_up_total{job=\"$job\", instance=\"$instance\", status=\"up\"}",
+            "expr": "nagios_hosts_status_total{job=\"$job\", instance=\"$instance\", status=\"up\"}",
             "legendFormat": "{{status}}",
             "range": true,
             "refId": "A"
@@ -668,10 +1652,10 @@
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "1aP5u7yMk"
+              "uid": "${DS_PROMETHEUS}"
             },
             "editorMode": "code",
-            "expr": "nagios_hosts_up_total{job=\"$job\", instance=\"$instance\", status=\"down\"}",
+            "expr": "nagios_hosts_status_total{job=\"$job\", instance=\"$instance\", status=\"down\"}",
             "hide": false,
             "legendFormat": "{{status}}",
             "range": true,
@@ -680,10 +1664,10 @@
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "1aP5u7yMk"
+              "uid": "${DS_PROMETHEUS}"
             },
             "editorMode": "code",
-            "expr": "nagios_hosts_up_total{job=\"$job\", instance=\"$instance\", status=\"unreachable\"}",
+            "expr": "nagios_hosts_status_total{job=\"$job\", instance=\"$instance\", status=\"unreachable\"}",
             "hide": false,
             "legendFormat": "{{status}}",
             "range": true,
@@ -692,10 +1676,10 @@
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "1aP5u7yMk"
+              "uid": "${DS_PROMETHEUS}"
             },
             "editorMode": "code",
-            "expr": "nagios_hosts_up_total{job=\"$job\", instance=\"$instance\", status=\"flapping\"}",
+            "expr": "nagios_hosts_status_total{job=\"$job\", instance=\"$instance\", status=\"flapping\"}",
             "hide": false,
             "legendFormat": "{{status}}",
             "range": true,
@@ -721,7 +1705,7 @@
       {
         "datasource": {
           "type": "prometheus",
-          "uid": "1aP5u7yMk"
+          "uid": "${DS_PROMETHEUS}"
         },
         "fieldConfig": {
           "defaults": {
@@ -741,7 +1725,7 @@
                 "viz": false
               },
               "lineInterpolation": "linear",
-              "lineWidth": 1,
+              "lineWidth": 4,
               "pointSize": 5,
               "scaleDistribution": {
                 "type": "linear"
@@ -775,7 +1759,7 @@
         },
         "gridPos": {
           "h": 9,
-          "w": 12,
+          "w": 8,
           "x": 0,
           "y": 25
         },
@@ -795,7 +1779,7 @@
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "1aP5u7yMk"
+              "uid": "${DS_PROMETHEUS}"
             },
             "editorMode": "code",
             "expr": "nagios_services_checked_total{job=\"$job\", instance=\"$instance\", check_type=\"active\"}",
@@ -806,10 +1790,10 @@
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "1aP5u7yMk"
+              "uid": "${DS_PROMETHEUS}"
             },
             "editorMode": "code",
-            "expr": "nagios_hosts_checked{job=\"$job\", instance=\"$instance\", check_type=\"passive\"}",
+            "expr": "nagios_hosts_checked_total{job=\"$job\", instance=\"$instance\", check_type=\"passive\"}",
             "hide": false,
             "legendFormat": "{{check_type}} - hosts",
             "range": true,
@@ -818,7 +1802,7 @@
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "1aP5u7yMk"
+              "uid": "${DS_PROMETHEUS}"
             },
             "editorMode": "code",
             "expr": "nagios_services_checked_total{job=\"$job\", instance=\"$instance\", check_type=\"passive\"}",
@@ -830,10 +1814,10 @@
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "1aP5u7yMk"
+              "uid": "${DS_PROMETHEUS}"
             },
             "editorMode": "code",
-            "expr": "nagios_hosts_checked{job=\"$job\", instance=\"$instance\", check_type=\"active\"}",
+            "expr": "nagios_hosts_checked_total{job=\"$job\", instance=\"$instance\", check_type=\"active\"}",
             "hide": false,
             "legendFormat": "{{check_type}} - hosts",
             "range": true,
@@ -846,165 +1830,7 @@
       {
         "datasource": {
           "type": "prometheus",
-          "uid": "1aP5u7yMk"
-        },
-        "fieldConfig": {
-          "defaults": {
-            "color": {
-              "mode": "palette-classic"
-            },
-            "custom": {
-              "hideFrom": {
-                "legend": false,
-                "tooltip": false,
-                "viz": false
-              }
-            },
-            "mappings": []
-          },
-          "overrides": []
-        },
-        "gridPos": {
-          "h": 8,
-          "w": 6,
-          "x": 12,
-          "y": 25
-        },
-        "id": 22,
-        "options": {
-          "displayLabels": [
-            "percent"
-          ],
-          "legend": {
-            "displayMode": "list",
-            "placement": "right",
-            "values": []
-          },
-          "pieType": "pie",
-          "reduceOptions": {
-            "calcs": [
-              "lastNotNull"
-            ],
-            "fields": "",
-            "values": false
-          },
-          "tooltip": {
-            "mode": "single",
-            "sort": "none"
-          }
-        },
-        "targets": [
-          {
-            "datasource": {
-              "type": "prometheus",
-              "uid": "1aP5u7yMk"
-            },
-            "editorMode": "code",
-            "expr": "nagios_hosts_checked{job=\"$job\", instance=\"$instance\", check_type=\"passive\"}",
-            "hide": false,
-            "legendFormat": "{{check_type}} - hosts",
-            "range": true,
-            "refId": "B"
-          },
-          {
-            "datasource": {
-              "type": "prometheus",
-              "uid": "1aP5u7yMk"
-            },
-            "editorMode": "code",
-            "expr": "nagios_hosts_checked{job=\"$job\", instance=\"$instance\", check_type=\"active\"}",
-            "hide": false,
-            "legendFormat": "{{check_type}} - hosts",
-            "range": true,
-            "refId": "D"
-          }
-        ],
-        "title": "Check Types for Hosts",
-        "type": "piechart"
-      },
-      {
-        "datasource": {
-          "type": "prometheus",
-          "uid": "1aP5u7yMk"
-        },
-        "fieldConfig": {
-          "defaults": {
-            "color": {
-              "mode": "palette-classic"
-            },
-            "custom": {
-              "hideFrom": {
-                "legend": false,
-                "tooltip": false,
-                "viz": false
-              }
-            },
-            "mappings": []
-          },
-          "overrides": []
-        },
-        "gridPos": {
-          "h": 8,
-          "w": 6,
-          "x": 18,
-          "y": 25
-        },
-        "id": 23,
-        "options": {
-          "displayLabels": [
-            "percent"
-          ],
-          "legend": {
-            "displayMode": "list",
-            "placement": "right",
-            "values": []
-          },
-          "pieType": "pie",
-          "reduceOptions": {
-            "calcs": [
-              "lastNotNull"
-            ],
-            "fields": "",
-            "values": false
-          },
-          "tooltip": {
-            "mode": "single",
-            "sort": "none"
-          }
-        },
-        "targets": [
-          {
-            "datasource": {
-              "type": "prometheus",
-              "uid": "1aP5u7yMk"
-            },
-            "editorMode": "code",
-            "expr": "nagios_services_checked_total{job=\"$job\", instance=\"$instance\", check_type=\"active\"}",
-            "hide": false,
-            "legendFormat": "{{check_type}} - services",
-            "range": true,
-            "refId": "A"
-          },
-          {
-            "datasource": {
-              "type": "prometheus",
-              "uid": "1aP5u7yMk"
-            },
-            "editorMode": "code",
-            "expr": "nagios_services_checked_total{job=\"$job\", instance=\"$instance\", check_type=\"passive\"}",
-            "hide": false,
-            "legendFormat": "{{check_type}} - services",
-            "range": true,
-            "refId": "C"
-          }
-        ],
-        "title": "Check Types for Services",
-        "type": "piechart"
-      },
-      {
-        "datasource": {
-          "type": "prometheus",
-          "uid": "1aP5u7yMk"
+          "uid": "${DS_PROMETHEUS}"
         },
         "fieldConfig": {
           "defaults": {
@@ -1024,133 +1850,7 @@
                 "viz": false
               },
               "lineInterpolation": "linear",
-              "lineWidth": 1,
-              "pointSize": 5,
-              "scaleDistribution": {
-                "type": "linear"
-              },
-              "showPoints": "auto",
-              "spanNulls": false,
-              "stacking": {
-                "group": "A",
-                "mode": "none"
-              },
-              "thresholdsStyle": {
-                "mode": "off"
-              }
-            },
-            "mappings": [],
-            "thresholds": {
-              "mode": "absolute",
-              "steps": [
-                {
-                  "color": "green",
-                  "value": null
-                },
-                {
-                  "color": "red",
-                  "value": 80
-                }
-              ]
-            }
-          },
-          "overrides": []
-        },
-        "gridPos": {
-          "h": 10,
-          "w": 12,
-          "x": 12,
-          "y": 33
-        },
-        "id": 20,
-        "options": {
-          "legend": {
-            "calcs": [],
-            "displayMode": "list",
-            "placement": "bottom"
-          },
-          "tooltip": {
-            "mode": "single",
-            "sort": "none"
-          }
-        },
-        "targets": [
-          {
-            "datasource": {
-              "type": "prometheus",
-              "uid": "1aP5u7yMk"
-            },
-            "editorMode": "code",
-            "expr": "nagios_hosts_checked{job=\"$job\", instance=\"$instance\", check_type=\"passive\"}",
-            "hide": false,
-            "legendFormat": "{{check_type}}",
-            "range": true,
-            "refId": "B"
-          },
-          {
-            "datasource": {
-              "type": "prometheus",
-              "uid": "1aP5u7yMk"
-            },
-            "editorMode": "code",
-            "expr": "nagios_hosts_checked{job=\"$job\", instance=\"$instance\", check_type=\"active\"}",
-            "hide": false,
-            "legendFormat": "{{check_type}}",
-            "range": true,
-            "refId": "D"
-          },
-          {
-            "datasource": {
-              "type": "prometheus",
-              "uid": "1aP5u7yMk"
-            },
-            "editorMode": "code",
-            "expr": "nagios_hosts_up_total{job=\"$job\", instance=\"$instance\", status=\"down\"}",
-            "hide": false,
-            "legendFormat": "{{status}}",
-            "range": true,
-            "refId": "E"
-          },
-          {
-            "datasource": {
-              "type": "prometheus",
-              "uid": "1aP5u7yMk"
-            },
-            "editorMode": "code",
-            "expr": "nagios_hosts_up_total{job=\"$job\", instance=\"$instance\", status=\"unreachable\"}",
-            "hide": false,
-            "legendFormat": "{{status}}",
-            "range": true,
-            "refId": "A"
-          }
-        ],
-        "title": "Hosts Down/Unreachable vs Check Types",
-        "type": "timeseries"
-      },
-      {
-        "datasource": {
-          "type": "prometheus",
-          "uid": "1aP5u7yMk"
-        },
-        "fieldConfig": {
-          "defaults": {
-            "color": {
-              "mode": "palette-classic"
-            },
-            "custom": {
-              "axisLabel": "",
-              "axisPlacement": "auto",
-              "barAlignment": 0,
-              "drawStyle": "line",
-              "fillOpacity": 0,
-              "gradientMode": "none",
-              "hideFrom": {
-                "legend": false,
-                "tooltip": false,
-                "viz": false
-              },
-              "lineInterpolation": "linear",
-              "lineWidth": 1,
+              "lineWidth": 4,
               "pointSize": 5,
               "scaleDistribution": {
                 "type": "linear"
@@ -1184,9 +1884,9 @@
         },
         "gridPos": {
           "h": 9,
-          "w": 12,
-          "x": 0,
-          "y": 34
+          "w": 8,
+          "x": 8,
+          "y": 25
         },
         "id": 21,
         "options": {
@@ -1204,7 +1904,7 @@
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "1aP5u7yMk"
+              "uid": "${DS_PROMETHEUS}"
             },
             "editorMode": "code",
             "expr": "nagios_services_checked_total{job=\"$job\", instance=\"$instance\", check_type=\"passive\"}",
@@ -1216,7 +1916,7 @@
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "1aP5u7yMk"
+              "uid": "${DS_PROMETHEUS}"
             },
             "editorMode": "code",
             "expr": "nagios_services_checked_total{job=\"$job\", instance=\"$instance\", check_type=\"active\"}",
@@ -1228,10 +1928,10 @@
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "1aP5u7yMk"
+              "uid": "${DS_PROMETHEUS}"
             },
             "editorMode": "code",
-            "expr": "nagios_services_ok_total{job=\"$job\", instance=\"$instance\", status=\"critical\"}",
+            "expr": "nagios_services_status_total{job=\"$job\", instance=\"$instance\", status=\"critical\"}",
             "hide": false,
             "legendFormat": "{{status}}",
             "range": true,
@@ -1240,10 +1940,10 @@
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "1aP5u7yMk"
+              "uid": "${DS_PROMETHEUS}"
             },
             "editorMode": "code",
-            "expr": "nagios_services_ok_total{job=\"$job\", instance=\"$instance\", status=\"unknown\"}",
+            "expr": "nagios_services_status_total{job=\"$job\", instance=\"$instance\", status=\"unknown\"}",
             "hide": false,
             "legendFormat": "{{status}}",
             "range": true,
@@ -1251,6 +1951,132 @@
           }
         ],
         "title": "Services Critical/Unknown vs Check Types",
+        "type": "timeseries"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${DS_PROMETHEUS}"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "axisLabel": "",
+              "axisPlacement": "auto",
+              "barAlignment": 0,
+              "drawStyle": "line",
+              "fillOpacity": 0,
+              "gradientMode": "none",
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "viz": false
+              },
+              "lineInterpolation": "linear",
+              "lineWidth": 4,
+              "pointSize": 5,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "showPoints": "auto",
+              "spanNulls": false,
+              "stacking": {
+                "group": "A",
+                "mode": "none"
+              },
+              "thresholdsStyle": {
+                "mode": "off"
+              }
+            },
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                },
+                {
+                  "color": "red",
+                  "value": 80
+                }
+              ]
+            }
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 9,
+          "w": 8,
+          "x": 16,
+          "y": 25
+        },
+        "id": 20,
+        "options": {
+          "legend": {
+            "calcs": [],
+            "displayMode": "list",
+            "placement": "bottom"
+          },
+          "tooltip": {
+            "mode": "single",
+            "sort": "none"
+          }
+        },
+        "targets": [
+          {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "${DS_PROMETHEUS}"
+            },
+            "editorMode": "code",
+            "expr": "nagios_hosts_checked_total{job=\"$job\", instance=\"$instance\", check_type=\"passive\"}",
+            "hide": false,
+            "legendFormat": "{{check_type}}",
+            "range": true,
+            "refId": "B"
+          },
+          {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "${DS_PROMETHEUS}"
+            },
+            "editorMode": "code",
+            "expr": "nagios_hosts_checked_total{job=\"$job\", instance=\"$instance\", check_type=\"active\"}",
+            "hide": false,
+            "legendFormat": "{{check_type}}",
+            "range": true,
+            "refId": "D"
+          },
+          {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "${DS_PROMETHEUS}"
+            },
+            "editorMode": "code",
+            "expr": "nagios_hosts_status_total{job=\"$job\", instance=\"$instance\", status=\"down\"}",
+            "hide": false,
+            "legendFormat": "{{status}}",
+            "range": true,
+            "refId": "E"
+          },
+          {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "${DS_PROMETHEUS}"
+            },
+            "editorMode": "code",
+            "expr": "nagios_hosts_status_total{job=\"$job\", instance=\"$instance\", status=\"unreachable\"}",
+            "hide": false,
+            "legendFormat": "{{status}}",
+            "range": true,
+            "refId": "A"
+          }
+        ],
+        "title": "Hosts Down/Unreachable vs Check Types",
         "type": "timeseries"
       }
     ],
@@ -1266,7 +2092,7 @@
             "value": "nagios"
           },
           "description": "job",
-          "hide": 0,
+          "hide": 2,
           "includeAll": false,
           "label": "job",
           "multi": false,
@@ -1284,14 +2110,10 @@
           "type": "custom"
         },
         {
-          "current": {
-            "selected": true,
-            "text": "boris.boll:nagios",
-            "value": "boris.boll:nagios"
-          },
+          "current": {},
           "datasource": {
             "type": "prometheus",
-            "uid": "1aP5u7yMk"
+            "uid": "${DS_PROMETHEUS}"
           },
           "definition": "label_values(nagios_up{job=\"$job\"}, instance)",
           "hide": 0,
@@ -1310,14 +2132,14 @@
           "type": "query"
         },
         {
-          "current": {
-            "selected": false,
-            "text": "5.8.10",
-            "value": "5.8.10"
+          "current": {},
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
           },
           "definition": "label_values(nagios_version_info{instance=\"$instance\", job=\"$job\"},version)",
           "description": "Nagios Version",
-          "hide": 0,
+          "hide": 2,
           "includeAll": false,
           "multi": false,
           "name": "version",
@@ -1335,13 +2157,13 @@
       ]
     },
     "time": {
-      "from": "now-3h",
+      "from": "now-5m",
       "to": "now"
     },
     "timepicker": {},
     "timezone": "",
     "title": "Nagios Exporter",
     "uid": "ujglLGMVz",
-    "version": 12,
+    "version": 25,
     "weekStart": ""
   }
