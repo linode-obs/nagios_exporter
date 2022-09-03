@@ -15,7 +15,7 @@ cleanup() {
     # This is where you remove files that were not needed on this platform / system
     if [ "${use_systemctl}" = "False" ]; then
         rm -f /etc/systemd/system/prometheus-nagios-exporter.service
-        rm -f /etc/nagios_exporter/config.toml
+        rm -f /etc/prometheus-nagios-exporter/config.toml
     else
         rm -f /etc/chkconfig/prometheus-nagios-exporter
         rm -f /etc/init.d/prometheus-nagios-exporter

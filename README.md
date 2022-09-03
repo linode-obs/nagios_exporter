@@ -1,33 +1,70 @@
 # nagios_exporter
 
+[![golangci-lint](https://github.com/wbollock/nagios_exporter/actions/workflows/golangci-lint.yaml/badge.svg)](https://github.com/wbollock/nagios_exporter/actions/workflows/golangci-lint.yaml)
+[![Go Report Card](https://goreportcard.com/badge/github.com/wbollock/nagios_exporter)][goreportcard]
+
 A Prometheus exporter currently supporting:
 
 * Nagios XI
 
-## Build and Release Steps
+It includes metrics on the current state and configuration of Nagios. This includes the number of hosts, services, and information about their monitoring setup. For example, this exporter will output the number of flapping hosts, passive checks, or hosts in downtime.
 
-1. Build binaries with goreleaser:
+## Installation Instructions
 
-```bash
-goreleaser build --snapshot --rm-dist
+### Configuration
+
+Create a simple `config.toml` in `/etc/prometheus-nagios-exporter` with your Nagios API key:
+
+```toml
+# prometheus-nagios-exporter configuration
+
+APIKey = ""
 ```
 
-2. Use the resulting binaries in `./dist`, or create a deb/rpm packages with nfpm:
+By default this will point to localhost, but a remote address can be specified with `--web.remote-address`. The default port is `9111`, but can be changed with `--web.listen-address`.
+
+To see all available configuration flags:
 
 ```bash
-# deb example - can substitute with rpm
-nfpm package -p deb -t /tmp/
+./prometheus-nagios-exporter -h
 ```
 
-3. Tag release and push:
+### Debian/RPM package
+
+Substitute `{{ version }}` for your desired release.
 
 ```bash
-git tag -a v0.1.0 -m "First release"
-git push origin v0.1.0
-goreleaser release
+wget https://github.com/wbollock/nagios_exporter/releases/download/v{{ version }}/prometheus-nagios-exporter_{{ version }}_linux_amd64.deb
+dpkg -i prometheus-nagios-exporter_{{ version }}_linux_amd64.deb
 ```
 
-## Resources
+### Binary
+
+```bash
+wget https://github.com/wbollock/nagios_exporter/releases/download/v{{ version }}/nagios_exporter_{{ version }}_Linux_x86_64.tar.gz 
+tar xvf nagios_exporter_{{ version }}_Linux_x86_64.tar.gz
+./nagios_exporter/prometheus-nagios-exporter
+```
+
+### Source
+
+```bash
+wget https://github.com/wbollock/nagios_exporter/archive/refs/tags/v{{ version }}.tar.gz
+tar xvf nagios_exporter-{{ version }}.tar.gz
+cd ./nagios_exporter-{{ version }}
+go build main.go
+./main.go
+```
+
+## Troubleshooting
+
+Ensure `nagios_up` returns `1`, otherwise please check your API key and Nagios reachability, such as:
+
+```bash
+curl -GET "http://<nagios_url>/nagiosxi/api/v1/objects/host?apikey=<apikey>&pretty=1"
+```
+
+## Resources Used
 
 * [haproxy_expoter](https://github.com/prometheus/haproxy_exporter/blob/main/haproxy_exporter.go)
 * [15 Steps to Write an Application Prometheus Exporter in GO](https://medium.com/teamzerolabs/15-steps-to-write-an-application-prometheus-exporter-in-go-9746b4520e26)

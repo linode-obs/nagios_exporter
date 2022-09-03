@@ -77,8 +77,8 @@ var (
 
 	// Hosts
 	hostsTotal        = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "hosts_total"), "Amount of hosts present in configuration", nil, nil)
-	hostsCheckedTotal = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "hosts_checked"), "Amount of hosts checked", []string{"check_type"}, nil)
-	hostsStatus       = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "hosts_up_total"), "Amount of hosts in different states", []string{"status"}, nil)
+	hostsCheckedTotal = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "hosts_checked_total"), "Amount of hosts checked", []string{"check_type"}, nil)
+	hostsStatus       = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "hosts_status_total"), "Amount of hosts in different states", []string{"status"}, nil)
 	// downtime seems like a separate entity from status
 	hostsDowntime = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "hosts_downtime_total"), "Amount of hosts in downtime", nil, nil)
 
@@ -86,7 +86,7 @@ var (
 
 	servicesTotal        = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "services_total"), "Amount of services present in configuration", nil, nil)
 	servicesCheckedTotal = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "services_checked_total"), "Amount of services checked", []string{"check_type"}, nil)
-	servicesStatus       = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "services_ok_total"), "Amount of services in different states", []string{"status"}, nil)
+	servicesStatus       = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "services_status_total"), "Amount of services in different states", []string{"status"}, nil)
 	servicesDowntime     = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "services_downtime_total"), "Amount of services in downtime", nil, nil)
 
 	// System
@@ -385,7 +385,7 @@ func main() {
 			"Path under which to expose metrics")
 		remoteAddress = flag.String("web.remote-address", "localhost",
 			"Nagios application address")
-		configPath = flag.String("config.path", "/etc/nagios_exporter/config.toml",
+		configPath = flag.String("config.path", "/etc/prometheus-nagios-exporter/config.toml",
 			"Config file path")
 		logLevel = flag.String("log.level", "info",
 			"Minimum Log level [debug, info]")
