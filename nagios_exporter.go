@@ -138,6 +138,13 @@ var (
 	// System Detail
 	hostchecks    = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "host_checks_minutes"), "Host checks over time", []string{"check_type"}, nil)
 	servicechecks = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "service_checks_minutes"), "Service checks over time", []string{"check_type"}, nil)
+	// TODO - probably not ideal to have average already baked in, but don't know if I can calculate it myself..
+	// feels really nasty to have an operator label, maybe I stick to only making the average a metric?
+	// operator is min/max/avg exposed by Nagios XI API
+	// performance_type is latency/execution
+	// technically there is no such thing as a check_type of passive for these metrics, I guess I still keep the label though
+	hostchecksPerformance    = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "host_checks_performance_seconds"), "Host checks performance", []string{"check_type", "performance_type", "operator"}, nil)
+	servicechecksPerformance = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "service_checks_performance_seconds"), "Service checks performance", []string{"check_type", "performance_type", "operator"}, nil)
 )
 
 type Exporter struct {
@@ -169,6 +176,8 @@ func (e *Exporter) Describe(ch chan<- *prometheus.Desc) {
 	// System Detail
 	ch <- hostchecks
 	ch <- servicechecks
+	ch <- hostchecksPerformance
+	ch <- servicechecksPerformance
 }
 
 func (e *Exporter) TestNagiosConnectivity() float64 {
@@ -478,6 +487,56 @@ func (e *Exporter) QueryAPIsAndUpdateMetrics(ch chan<- prometheus.Metric) {
 			1:  uint64(systemStatusDetailObject.Nagioscore.Passiveservicechecks.Val1),
 			5:  uint64(systemStatusDetailObject.Nagioscore.Passiveservicechecks.Val5),
 			15: uint64(systemStatusDetailObject.Nagioscore.Passiveservicechecks.Val15)}, "passive",
+	)
+
+	// active host check performance
+	ch <- prometheus.MustNewConstMetric(
+		hostchecksPerformance, prometheus.GaugeValue, float64(systemStatusDetailObject.Nagioscore.Activehostcheckperf.AvgLatency), "active", "latency", "avg",
+	)
+
+	ch <- prometheus.MustNewConstMetric(
+		hostchecksPerformance, prometheus.GaugeValue, float64(systemStatusDetailObject.Nagioscore.Activehostcheckperf.MinLatency), "active", "latency", "min",
+	)
+
+	ch <- prometheus.MustNewConstMetric(
+		hostchecksPerformance, prometheus.GaugeValue, float64(systemStatusDetailObject.Nagioscore.Activehostcheckperf.MaxLatency), "active", "latency", "max",
+	)
+
+	ch <- prometheus.MustNewConstMetric(
+		hostchecksPerformance, prometheus.GaugeValue, float64(systemStatusDetailObject.Nagioscore.Activehostcheckperf.AvgExecutionTime), "active", "execution", "avg",
+	)
+
+	ch <- prometheus.MustNewConstMetric(
+		hostchecksPerformance, prometheus.GaugeValue, float64(systemStatusDetailObject.Nagioscore.Activehostcheckperf.MinExecutionTime), "active", "execution", "min",
+	)
+
+	ch <- prometheus.MustNewConstMetric(
+		hostchecksPerformance, prometheus.GaugeValue, float64(systemStatusDetailObject.Nagioscore.Activehostcheckperf.MinExecutionTime), "active", "execution", "max",
+	)
+
+	// active service check performance
+	ch <- prometheus.MustNewConstMetric(
+		servicechecksPerformance, prometheus.GaugeValue, float64(systemStatusDetailObject.Nagioscore.Activeservicecheckperf.AvgLatency), "active", "latency", "avg",
+	)
+
+	ch <- prometheus.MustNewConstMetric(
+		servicechecksPerformance, prometheus.GaugeValue, float64(systemStatusDetailObject.Nagioscore.Activeservicecheckperf.MinLatency), "active", "latency", "min",
+	)
+
+	ch <- prometheus.MustNewConstMetric(
+		servicechecksPerformance, prometheus.GaugeValue, float64(systemStatusDetailObject.Nagioscore.Activeservicecheckperf.MaxLatency), "active", "latency", "max",
+	)
+
+	ch <- prometheus.MustNewConstMetric(
+		servicechecksPerformance, prometheus.GaugeValue, float64(systemStatusDetailObject.Nagioscore.Activeservicecheckperf.AvgExecutionTime), "active", "execution", "avg",
+	)
+
+	ch <- prometheus.MustNewConstMetric(
+		servicechecksPerformance, prometheus.GaugeValue, float64(systemStatusDetailObject.Nagioscore.Activeservicecheckperf.MinExecutionTime), "active", "execution", "min",
+	)
+
+	ch <- prometheus.MustNewConstMetric(
+		servicechecksPerformance, prometheus.GaugeValue, float64(systemStatusDetailObject.Nagioscore.Activeservicecheckperf.MinExecutionTime), "active", "execution", "max",
 	)
 
 	log.Info("Endpoint scraped and metrics updated")
