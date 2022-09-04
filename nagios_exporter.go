@@ -83,23 +83,25 @@ type systemInfo struct {
 type hostStatus struct {
 	Recordcount int64 `json:"recordcount"`
 	Hoststatus  []struct {
-		HostObjectID           float64 `json:"host_object_id,string"`
-		CheckType              float64 `json:"check_type,string"`
-		CurrentState           float64 `json:"current_state,string"`
-		IsFlapping             float64 `json:"is_flapping,string"`
-		ScheduledDowntimeDepth float64 `json:"scheduled_downtime_depth,string"`
+		HostObjectID               float64 `json:"host_object_id,string"`
+		CheckType                  float64 `json:"check_type,string"`
+		CurrentState               float64 `json:"current_state,string"`
+		IsFlapping                 float64 `json:"is_flapping,string"`
+		ScheduledDowntimeDepth     float64 `json:"scheduled_downtime_depth,string"`
+		ProblemHasBeenAcknowledged int64   `json:"problem_has_been_acknowledged,string"`
 	} `json:"hoststatus"`
 }
 
 type serviceStatus struct {
 	Recordcount   int64 `json:"recordcount"`
 	Servicestatus []struct {
-		HasBeenChecked         float64 `json:"has_been_checked,string"`
-		ShouldBeScheduled      float64 `json:"should_be_scheduled,string"`
-		CheckType              float64 `json:"check_type,string"`
-		CurrentState           float64 `json:"current_state,string"`
-		IsFlapping             float64 `json:"is_flapping,string"`
-		ScheduledDowntimeDepth float64 `json:"scheduled_downtime_depth,string"`
+		HasBeenChecked             float64 `json:"has_been_checked,string"`
+		ShouldBeScheduled          float64 `json:"should_be_scheduled,string"`
+		CheckType                  float64 `json:"check_type,string"`
+		CurrentState               float64 `json:"current_state,string"`
+		IsFlapping                 float64 `json:"is_flapping,string"`
+		ScheduledDowntimeDepth     float64 `json:"scheduled_downtime_depth,string"`
+		ProblemHasBeenAcknowledged int64   `json:"problem_has_been_acknowledged,string"`
 	} `json:"servicestatus"`
 }
 
@@ -124,13 +126,15 @@ var (
 	hostsStatus       = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "hosts_status_total"), "Amount of hosts in different states", []string{"status"}, nil)
 	// downtime seems like a separate entity from status
 	hostsDowntime = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "hosts_downtime_total"), "Amount of hosts in downtime", nil, nil)
-
+	// TODO - maybe it is time to make host/service a label too...
+	hostsProblemsAcknowledged = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "hosts_acknowledges_total"), "Amount of host problems acknowledged", nil, nil)
 	// Services
 
-	servicesTotal        = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "services_total"), "Amount of services present in configuration", nil, nil)
-	servicesCheckedTotal = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "services_checked_total"), "Amount of services checked", []string{"check_type"}, nil)
-	servicesStatus       = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "services_status_total"), "Amount of services in different states", []string{"status"}, nil)
-	servicesDowntime     = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "services_downtime_total"), "Amount of services in downtime", nil, nil)
+	servicesTotal                = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "services_total"), "Amount of services present in configuration", nil, nil)
+	servicesCheckedTotal         = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "services_checked_total"), "Amount of services checked", []string{"check_type"}, nil)
+	servicesStatus               = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "services_status_total"), "Amount of services in different states", []string{"status"}, nil)
+	servicesDowntime             = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "services_downtime_total"), "Amount of services in downtime", nil, nil)
+	servicesProblemsAcknowledged = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "services_acknowledges_total"), "Amount of service problems acknowledged", nil, nil)
 
 	// System
 	versionInfo = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "version_info"), "Nagios version information", []string{"version"}, nil)
@@ -166,11 +170,13 @@ func (e *Exporter) Describe(ch chan<- *prometheus.Desc) {
 	ch <- hostsCheckedTotal
 	ch <- hostsStatus
 	ch <- hostsDowntime
+	ch <- hostsProblemsAcknowledged
 	// Services
 	ch <- servicesTotal
 	ch <- servicesCheckedTotal
 	ch <- servicesStatus
 	ch <- servicesDowntime
+	ch <- servicesProblemsAcknowledged
 	// System
 	ch <- versionInfo
 	// System Detail
@@ -280,7 +286,7 @@ func (e *Exporter) QueryAPIsAndUpdateMetrics(ch chan<- prometheus.Metric) {
 		hostsTotal, prometheus.GaugeValue, float64(hostStatusObject.Recordcount),
 	)
 
-	var hostsCount, hostsActiveCheckCount, hostsPassiveCheckCount, hostsUpCount, hostsDownCount, hostsUnreachableCount, hostsFlapCount, hostsDowntimeCount int
+	var hostsCount, hostsActiveCheckCount, hostsPassiveCheckCount, hostsUpCount, hostsDownCount, hostsUnreachableCount, hostsFlapCount, hostsDowntimeCount, hostsProblemsAcknowledgedCount int
 
 	// iterate through nested json
 	for _, v := range hostStatusObject.Hoststatus {
@@ -309,6 +315,10 @@ func (e *Exporter) QueryAPIsAndUpdateMetrics(ch chan<- prometheus.Metric) {
 
 		if v.ScheduledDowntimeDepth == 1 {
 			hostsDowntimeCount++
+		}
+
+		if v.ProblemHasBeenAcknowledged == 1 {
+			hostsProblemsAcknowledgedCount++
 		}
 	}
 
@@ -340,6 +350,10 @@ func (e *Exporter) QueryAPIsAndUpdateMetrics(ch chan<- prometheus.Metric) {
 		hostsDowntime, prometheus.GaugeValue, float64(hostsDowntimeCount),
 	)
 
+	ch <- prometheus.MustNewConstMetric(
+		hostsProblemsAcknowledged, prometheus.GaugeValue, float64(hostsProblemsAcknowledgedCount),
+	)
+
 	// service status
 	servicestatusURL := e.nagiosEndpoint + servicestatusAPI + "?apikey=" + e.nagiosAPIKey
 
@@ -357,7 +371,9 @@ func (e *Exporter) QueryAPIsAndUpdateMetrics(ch chan<- prometheus.Metric) {
 		servicesTotal, prometheus.GaugeValue, float64(serviceStatusObject.Recordcount),
 	)
 
-	var servicesCount, servicessCheckedCount, servicesScheduledCount, servicesActiveCheckCount, servicesPassiveCheckCount, servicesOkCount, servicesWarnCount, servicesCriticalCount, servicesUnknownCount, servicesFlapCount, servicesDowntimeCount int
+	var servicesCount, servicessCheckedCount, servicesScheduledCount, servicesActiveCheckCount,
+		servicesPassiveCheckCount, servicesOkCount, servicesWarnCount, servicesCriticalCount,
+		servicesUnknownCount, servicesFlapCount, servicesDowntimeCount, servicesProblemsAcknowledgedCount int
 
 	for _, v := range serviceStatusObject.Servicestatus {
 
@@ -398,6 +414,10 @@ func (e *Exporter) QueryAPIsAndUpdateMetrics(ch chan<- prometheus.Metric) {
 		if v.ScheduledDowntimeDepth == 1 {
 			servicesDowntimeCount++
 		}
+
+		if v.ProblemHasBeenAcknowledged == 1 {
+			servicesProblemsAcknowledgedCount++
+		}
 	}
 
 	ch <- prometheus.MustNewConstMetric(
@@ -430,6 +450,10 @@ func (e *Exporter) QueryAPIsAndUpdateMetrics(ch chan<- prometheus.Metric) {
 
 	ch <- prometheus.MustNewConstMetric(
 		servicesDowntime, prometheus.GaugeValue, float64(servicesDowntimeCount),
+	)
+
+	ch <- prometheus.MustNewConstMetric(
+		servicesProblemsAcknowledged, prometheus.GaugeValue, float64(servicesProblemsAcknowledgedCount),
 	)
 
 	// service status
