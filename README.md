@@ -72,8 +72,8 @@ tar xvf nagios_exporter_{{ version }}_Linux_x86_64.tar.gz
 wget https://github.com/wbollock/nagios_exporter/archive/refs/tags/v{{ version }}.tar.gz
 tar xvf nagios_exporter-{{ version }}.tar.gz
 cd ./nagios_exporter-{{ version }}
-go build main.go
-./main.go
+go build nagios_exporter.go
+./nagios_exporter.go
 ```
 
 ## Troubleshooting

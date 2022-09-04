@@ -13,6 +13,6 @@
 
 # nagios_exporter specific
 devconfig.toml
-main
+nagios_exporter
 
 dist/
