@@ -1,4 +1,4 @@
-package nagios_exporter
+package main
 
 import (
 	"encoding/json"
@@ -26,10 +26,53 @@ const hoststatusAPI = "/objects/hoststatus"
 const servicestatusAPI = "/objects/servicestatus"
 const systeminfoAPI = "/system/info"
 const systemstatusAPI = "/system/status"
+const systemstatusDetailAPI = "/system/statusdetail"
 
 type systemStatus struct {
 	// https://stackoverflow.com/questions/21151765/cannot-unmarshal-string-into-go-value-of-type-int64
 	Running float64 `json:"is_currently_running,string"`
+}
+
+type systemStatusDetail struct {
+	Nagioscore struct {
+		Activehostcheckperf struct {
+			AvgExecutionTime float64 `json:"avg_execution_time,string"`
+			AvgLatency       float64 `json:"avg_latency,string"`
+			MaxExecutionTime float64 `json:"max_execution_time,string"`
+			MaxLatency       float64 `json:"max_latency,string"`
+			MinExecutionTime int64   `json:"min_execution_time,string"`
+			MinLatency       int64   `json:"min_latency,string"`
+		} `json:"activehostcheckperf"`
+		Activehostchecks struct {
+			Val1  int64 `json:"val1,string"`
+			Val15 int64 `json:"val15,string"`
+			Val5  int64 `json:"val5,string"`
+		} `json:"activehostchecks"`
+		Activeservicecheckperf struct {
+			AvgExecutionTime float64 `json:"avg_execution_time,string"`
+			AvgLatency       float64 `json:"avg_latency,string"`
+			MaxExecutionTime float64 `json:"max_execution_time,string"`
+			MaxLatency       float64 `json:"max_latency,string"`
+			MinExecutionTime int64   `json:"min_execution_time,string"`
+			MinLatency       int64   `json:"min_latency,string"`
+		} `json:"activeservicecheckperf"`
+		Activeservicechecks struct {
+			Val1  int64 `json:"val1,string"`
+			Val15 int64 `json:"val15,string"`
+			Val5  int64 `json:"val5,string"`
+		} `json:"activeservicechecks"`
+		Passivehostchecks struct {
+			Val1  int64 `json:"val1,string"`
+			Val15 int64 `json:"val15,string"`
+			Val5  int64 `json:"val5,string"`
+		} `json:"passivehostchecks"`
+		Passiveservicechecks struct {
+			Val1  int64 `json:"val1,string"`
+			Val15 int64 `json:"val15,string"`
+			Val5  int64 `json:"val5,string"`
+		} `json:"passiveservicechecks"`
+		Updated string `json:"updated"`
+	} `json:"nagioscore"`
 }
 
 type systemInfo struct {
@@ -91,6 +134,10 @@ var (
 
 	// System
 	versionInfo = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "version_info"), "Nagios version information", []string{"version"}, nil)
+
+	// System Detail
+	hostchecks    = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "host_checks_minutes"), "Host checks over time", []string{"check_type"}, nil)
+	servicechecks = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "service_checks_minutes"), "Service checks over time", []string{"check_type"}, nil)
 )
 
 type Exporter struct {
@@ -119,6 +166,9 @@ func (e *Exporter) Describe(ch chan<- *prometheus.Desc) {
 	ch <- servicesDowntime
 	// System
 	ch <- versionInfo
+	// System Detail
+	ch <- hostchecks
+	ch <- servicechecks
 }
 
 func (e *Exporter) TestNagiosConnectivity() float64 {
@@ -371,6 +421,63 @@ func (e *Exporter) QueryAPIsAndUpdateMetrics(ch chan<- prometheus.Metric) {
 
 	ch <- prometheus.MustNewConstMetric(
 		servicesDowntime, prometheus.GaugeValue, float64(servicesDowntimeCount),
+	)
+
+	// service status
+	systemStatusDetailURL := e.nagiosEndpoint + systemstatusDetailAPI + "?apikey=" + e.nagiosAPIKey
+
+	body = QueryAPIs(systemStatusDetailURL)
+	log.Debug("Queried API: ", systemstatusDetailAPI)
+
+	systemStatusDetailObject := systemStatusDetail{}
+
+	jsonErr = json.Unmarshal(body, &systemStatusDetailObject)
+	if jsonErr != nil {
+		log.Fatal(jsonErr)
+	}
+
+	activeHostCheckSum := systemStatusDetailObject.Nagioscore.Activehostchecks.Val1 +
+		systemStatusDetailObject.Nagioscore.Activehostchecks.Val5 +
+		systemStatusDetailObject.Nagioscore.Activehostchecks.Val15
+
+	ch <- prometheus.MustNewConstHistogram(
+		hostchecks, uint64(activeHostCheckSum), float64(activeHostCheckSum), map[float64]uint64{
+			1:  uint64(systemStatusDetailObject.Nagioscore.Activehostchecks.Val1),
+			5:  uint64(systemStatusDetailObject.Nagioscore.Activehostchecks.Val5),
+			15: uint64(systemStatusDetailObject.Nagioscore.Activehostchecks.Val15)}, "active",
+	)
+
+	passiveHostCheckSum := systemStatusDetailObject.Nagioscore.Passivehostchecks.Val1 +
+		systemStatusDetailObject.Nagioscore.Passivehostchecks.Val5 +
+		systemStatusDetailObject.Nagioscore.Passivehostchecks.Val15
+
+	ch <- prometheus.MustNewConstHistogram(
+		hostchecks, uint64(passiveHostCheckSum), float64(passiveHostCheckSum), map[float64]uint64{
+			1:  uint64(systemStatusDetailObject.Nagioscore.Passivehostchecks.Val1),
+			5:  uint64(systemStatusDetailObject.Nagioscore.Passivehostchecks.Val5),
+			15: uint64(systemStatusDetailObject.Nagioscore.Passivehostchecks.Val15)}, "passive",
+	)
+
+	activeServiceCheckSum := systemStatusDetailObject.Nagioscore.Activeservicechecks.Val1 +
+		systemStatusDetailObject.Nagioscore.Activeservicechecks.Val5 +
+		systemStatusDetailObject.Nagioscore.Activeservicechecks.Val15
+
+	ch <- prometheus.MustNewConstHistogram(
+		servicechecks, uint64(activeServiceCheckSum), float64(activeServiceCheckSum), map[float64]uint64{
+			1:  uint64(systemStatusDetailObject.Nagioscore.Activeservicechecks.Val1),
+			5:  uint64(systemStatusDetailObject.Nagioscore.Activeservicechecks.Val5),
+			15: uint64(systemStatusDetailObject.Nagioscore.Activeservicechecks.Val15)}, "active",
+	)
+
+	passiveServiceCheckSum := systemStatusDetailObject.Nagioscore.Passiveservicechecks.Val1 +
+		systemStatusDetailObject.Nagioscore.Passiveservicechecks.Val5 +
+		systemStatusDetailObject.Nagioscore.Passiveservicechecks.Val15
+
+	ch <- prometheus.MustNewConstHistogram(
+		servicechecks, uint64(passiveServiceCheckSum), float64(passiveServiceCheckSum), map[float64]uint64{
+			1:  uint64(systemStatusDetailObject.Nagioscore.Passiveservicechecks.Val1),
+			5:  uint64(systemStatusDetailObject.Nagioscore.Passiveservicechecks.Val5),
+			15: uint64(systemStatusDetailObject.Nagioscore.Passiveservicechecks.Val15)}, "passive",
 	)
 
 	log.Info("Endpoint scraped and metrics updated")
