@@ -80,7 +80,7 @@
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
   "id": null,
-  "iteration": 1662311765599,
+  "iteration": 1662397038361,
   "links": [],
   "liveNow": false,
   "panels": [
@@ -2014,7 +2014,7 @@
       },
       "gridPos": {
         "h": 9,
-        "w": 8,
+        "w": 6,
         "x": 0,
         "y": 30
       },
@@ -2116,8 +2116,8 @@
       },
       "gridPos": {
         "h": 9,
-        "w": 8,
-        "x": 8,
+        "w": 6,
+        "x": 6,
         "y": 30
       },
       "id": 38,
@@ -2219,8 +2219,8 @@
       },
       "gridPos": {
         "h": 9,
-        "w": 8,
-        "x": 16,
+        "w": 6,
+        "x": 12,
         "y": 30
       },
       "id": 42,
@@ -2254,6 +2254,97 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
+          "expr": "nagios_service_checks_performance_seconds{job=\"$job\", instance=\"$instance\",check_type=\"active\", performance_type=\"execution\", operator=\"avg\"}",
+          "hide": false,
+          "legendFormat": "Service - {{operator}} {{performance_type}}",
+          "range": true,
+          "refId": "B"
+        }
+      ],
+      "title": "Average Check Execution Time",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 4,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 6,
+        "x": 18,
+        "y": 30
+      },
+      "id": 48,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "editorMode": "code",
           "expr": "nagios_host_checks_performance_seconds{job=\"$job\", instance=\"$instance\",check_type=\"active\", performance_type=\"latency\", operator=\"avg\"}",
           "hide": false,
           "legendFormat": "Host - {{operator}} {{performance_type}}",
@@ -2271,21 +2362,9 @@
           "legendFormat": "Service - {{operator}} {{performance_type}}",
           "range": true,
           "refId": "C"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${DS_PROMETHEUS}"
-          },
-          "editorMode": "code",
-          "expr": "nagios_host_checks_performance_seconds{job=\"$job\", instance=\"$instance\",check_type=\"active\", performance_type=\"execution\", operator=\"avg\"}",
-          "hide": false,
-          "legendFormat": "Host - {{operator}} {{performance_type}}",
-          "range": true,
-          "refId": "D"
         }
       ],
-      "title": "Average Check Performance",
+      "title": "Average Check Latency",
       "type": "timeseries"
     },
     {
@@ -2666,6 +2745,7 @@
       "type": "timeseries"
     }
   ],
+  "refresh": false,
   "schemaVersion": 36,
   "style": "dark",
   "tags": [],
@@ -2743,13 +2823,13 @@
     ]
   },
   "time": {
-    "from": "now-5m",
+    "from": "now-3h",
     "to": "now"
   },
   "timepicker": {},
   "timezone": "",
   "title": "Nagios Exporter",
   "uid": "ujglLGMVz",
-  "version": 33,
+  "version": 35,
   "weekStart": ""
 }
