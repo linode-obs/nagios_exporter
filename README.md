@@ -42,7 +42,7 @@ Create a simple `config.toml` in `/etc/prometheus-nagios-exporter` with your Nag
 APIKey = ""
 ```
 
-By default this will point to `http://localhost`, but a remote address can be specified with `--nagios.scrape-uri`. The default port is `9111`, but can be changed with `--web.listen-address`.
+By default this will point to `http://localhost`, but a remote address can be specified with `--nagios.scrape-uri`. The default port is `9927`, but can be changed with `--web.listen-address`.
 
 SSL support is included for scraping remote Nagios endpoints, and SSL verification can be enabled/disabled with `--nagios.ssl-verify`. A scrape timeout value is also available with `--nagios.timeout`.
 
