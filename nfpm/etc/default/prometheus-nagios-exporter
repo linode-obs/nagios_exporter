@@ -1,2 +1,2 @@
 # Prometheus Nagios Exporter default arguments
-ARGS="-config.path /etc/prometheus-nagios-exporter/config.toml -web.remote-address localhost"
+ARGS="--config.path /etc/prometheus-nagios-exporter/config.toml --nagios.scrape-uri http://localhost"
