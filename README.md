@@ -1,7 +1,10 @@
 # nagios_exporter
 
+[![license](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/wbollock/nagios_exporter/blob/master/LICENSE)
 [![golangci-lint](https://github.com/wbollock/nagios_exporter/actions/workflows/golangci-lint.yaml/badge.svg)](https://github.com/wbollock/nagios_exporter/actions/workflows/golangci-lint.yaml)
 ![Go Report Card](https://goreportcard.com/badge/github.com/wbollock/nagios_exporter)
+[![contributions](https://img.shields.io/badge/contributions-welcome-brightgreen.svg?style=flat")](https://github.com/wbollock/nagios_exporter/issues)
+
 
 A Prometheus exporter currently supporting:
 
@@ -20,18 +23,16 @@ This exporter does not output Nagios check results as Prometheus metrics; it is 
 ## Table of Contents
 - [nagios_exporter](#nagios_exporter)
   - [Table of Contents](#table-of-contents)
-  - [Installation Instructions](#installation-instructions)
-    - [Configuration](#configuration)
+  - [Configuration](#configuration)
+  - [Installation](#installation)
     - [Debian/RPM package](#debianrpm-package)
     - [Binary](#binary)
     - [Source](#source)
-  - [Troubleshooting](#troubleshooting)
   - [Grafana](#grafana)
+  - [Troubleshooting](#troubleshooting)
   - [Resources Used](#resources-used)
 
-## Installation Instructions
-
-### Configuration
+## Configuration
 
 Create a simple `config.toml` in `/etc/prometheus-nagios-exporter` with your Nagios API key:
 
@@ -54,6 +55,8 @@ To see all available configuration flags:
 ```bash
 ./prometheus-nagios-exporter -h
 ```
+
+## Installation
 
 ### Debian/RPM package
 
@@ -82,6 +85,12 @@ go build nagios_exporter.go
 ./nagios_exporter.go
 ```
 
+## Grafana
+
+Import the [dashboard](grafana/dashboard.json) template ([instructions](https://grafana.com/docs/grafana/v9.0/dashboards/export-import/#import-dashboard)).
+
+ ![grafana](img/grafana.png)
+
 ## Troubleshooting
 
 Ensure `nagios_up` returns `1`, otherwise please check your API key and Nagios reachability, such as:
@@ -89,12 +98,6 @@ Ensure `nagios_up` returns `1`, otherwise please check your API key and Nagios r
 ```bash
 curl -GET "http://<nagios_url>/nagiosxi/api/v1/objects/host?apikey=<apikey>&pretty=1"
 ```
-
-## Grafana
-
-Import the [dashboard](grafana/dashboard.json) template ([instructions](https://grafana.com/docs/grafana/v9.0/dashboards/export-import/#import-dashboard)).
-
- ![grafana](img/grafana.png)
 
 ## Resources Used
 
