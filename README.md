@@ -11,11 +11,11 @@ It includes metrics on the current state and configuration of Nagios. This inclu
 
 Practical use cases for this exporter may include:
 
-* A Nagios overview - see broad metrics on hosts and services
+* A Nagios overview - see broad status of hosts and services
 * Visualize changes in host status after making adjustments to Nagios checks
 * Detect an uptick in `unknown` check results after converting many active checks to passive
 
-This exporter does not output Nagios check results as Prometheus metrics; it is designed to export metrics of the Nagios monitoring server itself.
+This exporter does not output Nagios check results as Prometheus metrics; it is designed to export metrics of the Nagios monitoring server itself for meta-monitoring.
 
 ## Table of Contents
 - [nagios_exporter](#nagios_exporter)
