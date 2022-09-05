@@ -584,7 +584,7 @@ func (e *Exporter) QueryAPIsAndUpdateMetrics(ch chan<- prometheus.Metric, sslVer
 func main() {
 
 	var (
-		listenAddress = flag.String("web.listen-address", ":9111",
+		listenAddress = flag.String("web.listen-address", ":9927",
 			"Address to listen on for telemetry")
 		metricsPath = flag.String("web.telemetry-path", "/metrics",
 			"Path under which to expose metrics")
