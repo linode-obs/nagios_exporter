@@ -1,10 +1,12 @@
 package main
 
 import (
+	"crypto/tls"
 	"encoding/json"
 	"flag"
 	"io"
 	"net/http"
+	"time"
 
 	"github.com/BurntSushi/toml"
 	"github.com/prometheus/client_golang/prometheus"
@@ -153,12 +155,14 @@ var (
 
 type Exporter struct {
 	nagiosEndpoint, nagiosAPIKey string
+	sslVerify                    bool
 }
 
-func NewExporter(nagiosEndpoint, nagiosAPIKey string) *Exporter {
+func NewExporter(nagiosEndpoint, nagiosAPIKey string, sslVerify bool) *Exporter {
 	return &Exporter{
 		nagiosEndpoint: nagiosEndpoint,
 		nagiosAPIKey:   nagiosAPIKey,
+		sslVerify:      sslVerify,
 	}
 }
 
@@ -186,11 +190,11 @@ func (e *Exporter) Describe(ch chan<- *prometheus.Desc) {
 	ch <- servicechecksPerformance
 }
 
-func (e *Exporter) TestNagiosConnectivity() float64 {
+func (e *Exporter) TestNagiosConnectivity(sslVerify bool) float64 {
 
 	systemStatusURL := e.nagiosEndpoint + systemstatusAPI + "?apikey=" + e.nagiosAPIKey
 
-	body := QueryAPIs(systemStatusURL)
+	body := QueryAPIs(systemStatusURL, sslVerify)
 	log.Debug("Queried API: ", systemstatusAPI)
 
 	systemStatusObject := systemStatus{}
@@ -205,7 +209,7 @@ func (e *Exporter) TestNagiosConnectivity() float64 {
 
 func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 
-	nagiosStatus := e.TestNagiosConnectivity()
+	nagiosStatus := e.TestNagiosConnectivity(e.sslVerify)
 
 	if nagiosStatus == 0 {
 		log.Warn("Cannot connect to Nagios endpoint")
@@ -215,11 +219,22 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 		up, prometheus.GaugeValue, nagiosStatus,
 	)
 
-	e.QueryAPIsAndUpdateMetrics(ch)
+	e.QueryAPIsAndUpdateMetrics(ch, e.sslVerify)
 
 }
 
-func QueryAPIs(url string) (body []byte) {
+func QueryAPIs(url string, sslVerify bool) (body []byte) {
+
+	// https://github.com/prometheus/haproxy_exporter/blob/main/haproxy_exporter.go#L337-L345
+
+	tr := &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: !sslVerify}}
+	// I don't think timeout duration needs to be a user flag
+	var timeout time.Duration
+
+	client := http.Client{
+		Timeout:   timeout,
+		Transport: tr,
+	}
 
 	req, err := http.NewRequest("GET", url, nil)
 
@@ -230,16 +245,16 @@ func QueryAPIs(url string) (body []byte) {
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("User-Agent", "Prometheus")
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := client.Do(req)
 
 	if err != nil {
-		log.Warn(err)
+		log.Fatal(err)
 	}
 
 	if resp.Body != nil {
 		defer resp.Body.Close()
 	} else {
-		log.Warn("HTTP response body is nil - check API connectivity")
+		log.Fatal("HTTP response body is nil - check API connectivity")
 	}
 
 	body, readErr := io.ReadAll(resp.Body)
@@ -251,13 +266,13 @@ func QueryAPIs(url string) (body []byte) {
 	return body
 }
 
-func (e *Exporter) QueryAPIsAndUpdateMetrics(ch chan<- prometheus.Metric) {
+func (e *Exporter) QueryAPIsAndUpdateMetrics(ch chan<- prometheus.Metric, sslVerify bool) {
 
 	// get system status
 	systeminfoURL := e.nagiosEndpoint + systeminfoAPI + "?apikey=" + e.nagiosAPIKey
 	log.Debug("Queried API: ", systeminfoAPI)
 
-	body := QueryAPIs(systeminfoURL)
+	body := QueryAPIs(systeminfoURL, sslVerify)
 
 	systemInfoObject := systemInfo{}
 	jsonErr := json.Unmarshal(body, &systemInfoObject)
@@ -272,7 +287,7 @@ func (e *Exporter) QueryAPIsAndUpdateMetrics(ch chan<- prometheus.Metric) {
 	// host status
 	hoststatusURL := e.nagiosEndpoint + hoststatusAPI + "?apikey=" + e.nagiosAPIKey
 
-	body = QueryAPIs(hoststatusURL)
+	body = QueryAPIs(hoststatusURL, sslVerify)
 	log.Debug("Queried API: ", systeminfoAPI)
 
 	hostStatusObject := hostStatus{}
@@ -357,7 +372,7 @@ func (e *Exporter) QueryAPIsAndUpdateMetrics(ch chan<- prometheus.Metric) {
 	// service status
 	servicestatusURL := e.nagiosEndpoint + servicestatusAPI + "?apikey=" + e.nagiosAPIKey
 
-	body = QueryAPIs(servicestatusURL)
+	body = QueryAPIs(servicestatusURL, sslVerify)
 	log.Debug("Queried API: ", servicestatusAPI)
 
 	serviceStatusObject := serviceStatus{}
@@ -459,7 +474,7 @@ func (e *Exporter) QueryAPIsAndUpdateMetrics(ch chan<- prometheus.Metric) {
 	// service status
 	systemStatusDetailURL := e.nagiosEndpoint + systemstatusDetailAPI + "?apikey=" + e.nagiosAPIKey
 
-	body = QueryAPIs(systemStatusDetailURL)
+	body = QueryAPIs(systemStatusDetailURL, sslVerify)
 	log.Debug("Queried API: ", systemstatusDetailAPI)
 
 	systemStatusDetailObject := systemStatusDetail{}
@@ -573,8 +588,10 @@ func main() {
 			"Address to listen on for telemetry")
 		metricsPath = flag.String("web.telemetry-path", "/metrics",
 			"Path under which to expose metrics")
-		remoteAddress = flag.String("web.remote-address", "localhost",
+		remoteAddress = flag.String("nagios.scrape-uri", "http://localhost",
 			"Nagios application address")
+		sslVerify = flag.Bool("nagios.ssl-verify", false,
+			"SSL certificate validation")
 		configPath = flag.String("config.path", "/etc/prometheus-nagios-exporter/config.toml",
 			"Config file path")
 		logLevel = flag.String("log.level", "info",
@@ -592,10 +609,9 @@ func main() {
 
 	var conf Config = ReadConfig(*configPath)
 
-	// TODO - HTTPS support
-	nagiosURL := "http://" + *remoteAddress + nagiosAPIVersion + apiSlug
+	nagiosURL := *remoteAddress + nagiosAPIVersion + apiSlug
 
-	exporter := NewExporter(nagiosURL, conf.APIKey)
+	exporter := NewExporter(nagiosURL, conf.APIKey, *sslVerify)
 	prometheus.MustRegister(exporter)
 
 	log.Info("Using connection endpoint: ", *remoteAddress)
