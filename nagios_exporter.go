@@ -119,6 +119,11 @@ func ReadConfig(configPath string) Config {
 }
 
 var (
+	// Build info for nagios exporter itself, will be populated by linker during build
+	Version   string
+	BuildDate string
+	Commit    string
+
 	// Metrics
 	up = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "up"), "Whether Nagios can be reached", nil, nil)
 
@@ -140,6 +145,7 @@ var (
 
 	// System
 	versionInfo = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "version_info"), "Nagios version information", []string{"version"}, nil)
+	buildInfo = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "build_info"), "Nagios exporter build information", []string{"version", "build_date", "commit"}, nil)
 
 	// System Detail
 	hostchecks    = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "host_checks_minutes"), "Host checks over time", []string{"check_type"}, nil)
@@ -185,6 +191,7 @@ func (e *Exporter) Describe(ch chan<- *prometheus.Desc) {
 	ch <- servicesProblemsAcknowledged
 	// System
 	ch <- versionInfo
+	ch <- buildInfo
 	// System Detail
 	ch <- hostchecks
 	ch <- servicechecks
@@ -282,6 +289,10 @@ func (e *Exporter) QueryAPIsAndUpdateMetrics(ch chan<- prometheus.Metric, sslVer
 
 	ch <- prometheus.MustNewConstMetric(
 		versionInfo, prometheus.GaugeValue, 1, systemInfoObject.Version,
+	)
+
+	ch <- prometheus.MustNewConstMetric(
+		buildInfo, prometheus.GaugeValue, 1, Version, BuildDate, Commit,
 	)
 
 	// host status
