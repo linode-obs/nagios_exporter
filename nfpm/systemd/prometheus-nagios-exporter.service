@@ -10,6 +10,7 @@ User=root
 Group=root
 Type=simple
 ExecStart=/usr/local/bin/prometheus-nagios-exporter $ARGS
+Restart=on-failure
 
 [Install]
 WantedBy=multi-user.target
