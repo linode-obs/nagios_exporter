@@ -128,15 +128,13 @@ var (
 	up = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "up"), "Whether Nagios can be reached", nil, nil)
 
 	// Hosts
-	hostsTotal        = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "hosts_total"), "Amount of hosts present in configuration", nil, nil)
-	hostsCheckedTotal = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "hosts_checked_total"), "Amount of hosts checked", []string{"check_type"}, nil)
-	hostsStatus       = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "hosts_status_total"), "Amount of hosts in different states", []string{"status"}, nil)
-	// downtime seems like a separate entity from status
-	hostsDowntime = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "hosts_downtime_total"), "Amount of hosts in downtime", nil, nil)
-	// TODO - maybe it is time to make host/service a label too...
+	hostsTotal                = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "hosts_total"), "Amount of hosts present in configuration", nil, nil)
+	hostsCheckedTotal         = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "hosts_checked_total"), "Amount of hosts checked", []string{"check_type"}, nil)
+	hostsStatus               = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "hosts_status_total"), "Amount of hosts in different states", []string{"status"}, nil)
+	hostsDowntime             = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "hosts_downtime_total"), "Amount of hosts in downtime", nil, nil)
 	hostsProblemsAcknowledged = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "hosts_acknowledges_total"), "Amount of host problems acknowledged", nil, nil)
-	// Services
 
+	// Services
 	servicesTotal                = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "services_total"), "Amount of services present in configuration", nil, nil)
 	servicesCheckedTotal         = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "services_checked_total"), "Amount of services checked", []string{"check_type"}, nil)
 	servicesStatus               = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "services_status_total"), "Amount of services in different states", []string{"status"}, nil)
@@ -145,16 +143,14 @@ var (
 
 	// System
 	versionInfo = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "version_info"), "Nagios version information", []string{"version"}, nil)
-	buildInfo = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "build_info"), "Nagios exporter build information", []string{"version", "build_date", "commit"}, nil)
+	buildInfo   = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "build_info"), "Nagios exporter build information", []string{"version", "build_date", "commit"}, nil)
 
 	// System Detail
 	hostchecks    = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "host_checks_minutes"), "Host checks over time", []string{"check_type"}, nil)
 	servicechecks = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "service_checks_minutes"), "Service checks over time", []string{"check_type"}, nil)
-	// TODO - probably not ideal to have average already baked in, but don't know if I can calculate it myself..
-	// feels really nasty to have an operator label, maybe I stick to only making the average a metric?
 	// operator is min/max/avg exposed by Nagios XI API
 	// performance_type is latency/execution
-	// technically there is no such thing as a check_type of passive for these metrics, I guess I still keep the label though
+	// technically there is no such thing as a check_type of passive for these metrics
 	hostchecksPerformance    = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "host_checks_performance_seconds"), "Host checks performance", []string{"check_type", "performance_type", "operator"}, nil)
 	servicechecksPerformance = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "service_checks_performance_seconds"), "Service checks performance", []string{"check_type", "performance_type", "operator"}, nil)
 )
@@ -235,7 +231,6 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 func QueryAPIs(url string, sslVerify bool, nagiosAPITimeout time.Duration) (body []byte) {
 
 	// https://github.com/prometheus/haproxy_exporter/blob/main/haproxy_exporter.go#L337-L345
-
 	tr := &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: !sslVerify}}
 
 	client := http.Client{
@@ -317,7 +312,7 @@ func (e *Exporter) QueryAPIsAndUpdateMetrics(ch chan<- prometheus.Metric, sslVer
 	// iterate through nested json
 	for _, v := range hostStatusObject.Hoststatus {
 
-		// for every hosts
+		// for every host
 		hostsCount++
 
 		if v.CheckType == 0 {
@@ -410,19 +405,16 @@ func (e *Exporter) QueryAPIsAndUpdateMetrics(ch chan<- prometheus.Metric, sslVer
 		}
 
 		if v.ShouldBeScheduled == 0 {
-			// TODO - is should_be_scheduled different than a services actually being scheduled?
 			servicesScheduledCount++
 		}
 
 		if v.CheckType == 0 {
-			// TODO - I'm a little shaky on check_type -> 1 being passive
 			servicesActiveCheckCount++
 		} else {
 			servicesPassiveCheckCount++
 		}
 
 		switch currentstate := v.CurrentState; currentstate {
-		// TODO - verify this order, e.g 1/2 are warn/crit
 		case 0:
 			servicesOkCount++
 		case 1:
