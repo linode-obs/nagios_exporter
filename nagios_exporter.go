@@ -411,7 +411,7 @@ func (e *Exporter) QueryAPIsAndUpdateMetrics(ch chan<- prometheus.Metric, sslVer
 		servicesTotal, prometheus.GaugeValue, float64(serviceStatusObject.Recordcount),
 	)
 
-	var servicesCount, servicessCheckedCount, servicesScheduledCount, servicesActiveCheckCount,
+	var servicesCount, servicesCheckedCount, servicesScheduledCount, servicesActiveCheckCount,
 		servicesPassiveCheckCount, servicesOkCount, servicesWarnCount, servicesCriticalCount,
 		servicesUnknownCount, servicesFlapCount, servicesDowntimeCount, servicesProblemsAcknowledgedCount int
 
@@ -420,7 +420,7 @@ func (e *Exporter) QueryAPIsAndUpdateMetrics(ch chan<- prometheus.Metric, sslVer
 		servicesCount++
 
 		if v.HasBeenChecked == 0 {
-			servicessCheckedCount++
+			servicesCheckedCount++
 		}
 
 		if v.ShouldBeScheduled == 0 {
