@@ -29,6 +29,7 @@ const servicestatusAPI = "/objects/servicestatus"
 const systeminfoAPI = "/system/info"
 const systemstatusAPI = "/system/status"
 const systemstatusDetailAPI = "/system/statusdetail"
+const systemuserAPI = "/system/user"
 
 type systemStatus struct {
 	// https://stackoverflow.com/questions/21151765/cannot-unmarshal-string-into-go-value-of-type-int64
@@ -107,6 +108,15 @@ type serviceStatus struct {
 	} `json:"servicestatus"`
 }
 
+type userStatus struct {
+	// yes, this field is named records even though every other endpoint is `recordcount`...
+	Recordcount int64 `json:"records"`
+	Userstatus  []struct {
+		Admin   int64 `json:"admin,string"`
+		Enabled int64 `json:"enabled,string"`
+	} `json:"users"`
+}
+
 func ReadConfig(configPath string) Config {
 
 	var conf Config
@@ -153,6 +163,11 @@ var (
 	// technically there is no such thing as a check_type of passive for these metrics
 	hostchecksPerformance    = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "host_checks_performance_seconds"), "Host checks performance", []string{"check_type", "performance_type", "operator"}, nil)
 	servicechecksPerformance = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "service_checks_performance_seconds"), "Service checks performance", []string{"check_type", "performance_type", "operator"}, nil)
+
+	// Users
+	usersTotal      = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "users_total"), "Amount of users present on the system", nil, nil)
+	usersPrivileges = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "users_privileges_total"), "Amount of admin or regular users", []string{"privileges"}, nil)
+	usersStatus     = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "users_status_total"), "Amount of disabled or enabled users", []string{"status"}, nil)
 )
 
 type Exporter struct {
@@ -193,6 +208,10 @@ func (e *Exporter) Describe(ch chan<- *prometheus.Desc) {
 	ch <- servicechecks
 	ch <- hostchecksPerformance
 	ch <- servicechecksPerformance
+	// Users
+	ch <- usersTotal
+	ch <- usersPrivileges
+	ch <- usersStatus
 }
 
 func (e *Exporter) TestNagiosConnectivity(sslVerify bool, nagiosAPITimeout time.Duration) float64 {
@@ -392,7 +411,7 @@ func (e *Exporter) QueryAPIsAndUpdateMetrics(ch chan<- prometheus.Metric, sslVer
 		servicesTotal, prometheus.GaugeValue, float64(serviceStatusObject.Recordcount),
 	)
 
-	var servicesCount, servicessCheckedCount, servicesScheduledCount, servicesActiveCheckCount,
+	var servicesCount, servicesCheckedCount, servicesScheduledCount, servicesActiveCheckCount,
 		servicesPassiveCheckCount, servicesOkCount, servicesWarnCount, servicesCriticalCount,
 		servicesUnknownCount, servicesFlapCount, servicesDowntimeCount, servicesProblemsAcknowledgedCount int
 
@@ -401,7 +420,7 @@ func (e *Exporter) QueryAPIsAndUpdateMetrics(ch chan<- prometheus.Metric, sslVer
 		servicesCount++
 
 		if v.HasBeenChecked == 0 {
-			servicessCheckedCount++
+			servicesCheckedCount++
 		}
 
 		if v.ShouldBeScheduled == 0 {
@@ -579,6 +598,57 @@ func (e *Exporter) QueryAPIsAndUpdateMetrics(ch chan<- prometheus.Metric, sslVer
 
 	ch <- prometheus.MustNewConstMetric(
 		servicechecksPerformance, prometheus.GaugeValue, float64(systemStatusDetailObject.Nagioscore.Activeservicecheckperf.MinExecutionTime), "active", "execution", "max",
+	)
+
+	// user information
+	// we also need to tack on the optional parameter of `advanced` to get privilege information
+	systemUserURL := e.nagiosEndpoint + systemuserAPI + "?apikey=" + e.nagiosAPIKey + "&advanced=1"
+
+	body = QueryAPIs(systemUserURL, sslVerify, nagiosAPITimeout)
+	log.Debug("Queried API: ", systemuserAPI)
+
+	userStatusObject := userStatus{}
+
+	jsonErr = json.Unmarshal(body, &userStatusObject)
+	if jsonErr != nil {
+		log.Fatal(jsonErr)
+	}
+
+	var usersAdminCount, usersRegularCount, usersEnabledCount, usersDisabledCount int
+
+	ch <- prometheus.MustNewConstMetric(
+		usersTotal, prometheus.GaugeValue, float64(userStatusObject.Recordcount),
+	)
+
+	for _, v := range userStatusObject.Userstatus {
+
+		if v.Admin == 1 {
+			usersAdminCount++
+		} else {
+			usersRegularCount++
+		}
+
+		if v.Enabled == 1 {
+			usersEnabledCount++
+		} else {
+			usersDisabledCount++
+		}
+	}
+
+	ch <- prometheus.MustNewConstMetric(
+		usersStatus, prometheus.GaugeValue, float64(usersEnabledCount), "enabled",
+	)
+
+	ch <- prometheus.MustNewConstMetric(
+		usersStatus, prometheus.GaugeValue, float64(usersDisabledCount), "disabled",
+	)
+
+	ch <- prometheus.MustNewConstMetric(
+		usersPrivileges, prometheus.GaugeValue, float64(usersAdminCount), "admin",
+	)
+
+	ch <- prometheus.MustNewConstMetric(
+		usersPrivileges, prometheus.GaugeValue, float64(usersRegularCount), "user",
 	)
 
 	log.Info("Endpoint scraped and metrics updated")
