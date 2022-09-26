@@ -4,9 +4,11 @@ import (
 	"bytes"
 	"crypto/tls"
 	"encoding/json"
+	"errors"
 	"flag"
 	"io"
 	"net/http"
+	"regexp"
 	"strings"
 	"time"
 
@@ -249,6 +251,14 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 
 }
 
+// NagiosXI only supports submitting an API token as a URL parameter, so we need to scrub the API key from HTTP client errors
+func sanitizeAPIKeyErrors(err error) error {
+	var re = regexp.MustCompile("(apikey=)(.*)")
+	sanitizedString := re.ReplaceAllString(err.Error(), "${1}<redactedAPIKey>")
+
+	return errors.New(sanitizedString)
+}
+
 func QueryAPIs(url string, sslVerify bool, nagiosAPITimeout time.Duration) (body []byte) {
 
 	// https://github.com/prometheus/haproxy_exporter/blob/main/haproxy_exporter.go#L337-L345
@@ -262,7 +272,7 @@ func QueryAPIs(url string, sslVerify bool, nagiosAPITimeout time.Duration) (body
 	req, err := http.NewRequest("GET", url, nil)
 
 	if err != nil {
-		log.Warn(err)
+		log.Warn(sanitizeAPIKeyErrors(err))
 	}
 
 	req.Header.Set("Content-Type", "application/json")
@@ -271,7 +281,7 @@ func QueryAPIs(url string, sslVerify bool, nagiosAPITimeout time.Duration) (body
 	resp, err := client.Do(req)
 
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal(sanitizeAPIKeyErrors(err))
 	}
 
 	if resp.Body != nil {
@@ -283,7 +293,7 @@ func QueryAPIs(url string, sslVerify bool, nagiosAPITimeout time.Duration) (body
 	body, readErr := io.ReadAll(resp.Body)
 
 	if readErr != nil {
-		log.Fatal(readErr)
+		log.Fatal(sanitizeAPIKeyErrors(readErr))
 	}
 
 	return body
