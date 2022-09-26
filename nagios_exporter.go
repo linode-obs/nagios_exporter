@@ -1,11 +1,13 @@
 package main
 
 import (
+	"bytes"
 	"crypto/tls"
 	"encoding/json"
 	"flag"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/BurntSushi/toml"
@@ -654,6 +656,27 @@ func (e *Exporter) QueryAPIsAndUpdateMetrics(ch chan<- prometheus.Metric, sslVer
 	log.Info("Endpoint scraped and metrics updated")
 }
 
+// custom formatter modified from https://github.com/sirupsen/logrus/issues/719#issuecomment-536459432
+// https://stackoverflow.com/questions/48971780/how-to-change-the-format-of-log-output-in-logrus/48972299#48972299
+// required as Nagios XI API only supports giving the API token as a URL parameter, and thus can be leaked in the logs
+type nagiosFormatter struct {
+	log.TextFormatter
+	APIKey string
+}
+
+func (f *nagiosFormatter) Format(entry *log.Entry) ([]byte, error) {
+	log, newEntry := f.TextFormatter.Format(entry)
+
+	// there might be a better way to do this but, convert our log byte array to a string
+	logString := string(log[:])
+	// replace the secret APIKey with junk
+	cleanString := strings.ReplaceAll(logString, f.APIKey, "<redactedAPIKey>")
+	// return it to a byte and pass it on
+	cleanLog := []byte(cleanString)
+
+	return bytes.Trim(cleanLog, f.APIKey), newEntry
+}
+
 func main() {
 
 	var (
@@ -684,6 +707,10 @@ func main() {
 	}
 
 	var conf Config = ReadConfig(*configPath)
+
+	formatter := nagiosFormatter{}
+	formatter.APIKey = conf.APIKey
+	log.SetFormatter(&formatter)
 
 	nagiosURL := *remoteAddress + nagiosAPIVersion + apiSlug
 
