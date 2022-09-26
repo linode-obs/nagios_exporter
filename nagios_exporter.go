@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"crypto/tls"
 	"encoding/json"
 	"errors"
@@ -8,6 +9,7 @@ import (
 	"io"
 	"net/http"
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/BurntSushi/toml"
@@ -31,6 +33,7 @@ const servicestatusAPI = "/objects/servicestatus"
 const systeminfoAPI = "/system/info"
 const systemstatusAPI = "/system/status"
 const systemstatusDetailAPI = "/system/statusdetail"
+const systemuserAPI = "/system/user"
 
 type systemStatus struct {
 	// https://stackoverflow.com/questions/21151765/cannot-unmarshal-string-into-go-value-of-type-int64
@@ -109,6 +112,15 @@ type serviceStatus struct {
 	} `json:"servicestatus"`
 }
 
+type userStatus struct {
+	// yes, this field is named records even though every other endpoint is `recordcount`...
+	Recordcount int64 `json:"records"`
+	Userstatus  []struct {
+		Admin   int64 `json:"admin,string"`
+		Enabled int64 `json:"enabled,string"`
+	} `json:"users"`
+}
+
 func ReadConfig(configPath string) Config {
 
 	var conf Config
@@ -130,15 +142,13 @@ var (
 	up = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "up"), "Whether Nagios can be reached", nil, nil)
 
 	// Hosts
-	hostsTotal        = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "hosts_total"), "Amount of hosts present in configuration", nil, nil)
-	hostsCheckedTotal = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "hosts_checked_total"), "Amount of hosts checked", []string{"check_type"}, nil)
-	hostsStatus       = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "hosts_status_total"), "Amount of hosts in different states", []string{"status"}, nil)
-	// downtime seems like a separate entity from status
-	hostsDowntime = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "hosts_downtime_total"), "Amount of hosts in downtime", nil, nil)
-	// TODO - maybe it is time to make host/service a label too...
+	hostsTotal                = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "hosts_total"), "Amount of hosts present in configuration", nil, nil)
+	hostsCheckedTotal         = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "hosts_checked_total"), "Amount of hosts checked", []string{"check_type"}, nil)
+	hostsStatus               = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "hosts_status_total"), "Amount of hosts in different states", []string{"status"}, nil)
+	hostsDowntime             = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "hosts_downtime_total"), "Amount of hosts in downtime", nil, nil)
 	hostsProblemsAcknowledged = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "hosts_acknowledges_total"), "Amount of host problems acknowledged", nil, nil)
-	// Services
 
+	// Services
 	servicesTotal                = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "services_total"), "Amount of services present in configuration", nil, nil)
 	servicesCheckedTotal         = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "services_checked_total"), "Amount of services checked", []string{"check_type"}, nil)
 	servicesStatus               = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "services_status_total"), "Amount of services in different states", []string{"status"}, nil)
@@ -152,13 +162,16 @@ var (
 	// System Detail
 	hostchecks    = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "host_checks_minutes"), "Host checks over time", []string{"check_type"}, nil)
 	servicechecks = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "service_checks_minutes"), "Service checks over time", []string{"check_type"}, nil)
-	// TODO - probably not ideal to have average already baked in, but don't know if I can calculate it myself..
-	// feels really nasty to have an operator label, maybe I stick to only making the average a metric?
 	// operator is min/max/avg exposed by Nagios XI API
 	// performance_type is latency/execution
-	// technically there is no such thing as a check_type of passive for these metrics, I guess I still keep the label though
+	// technically there is no such thing as a check_type of passive for these metrics
 	hostchecksPerformance    = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "host_checks_performance_seconds"), "Host checks performance", []string{"check_type", "performance_type", "operator"}, nil)
 	servicechecksPerformance = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "service_checks_performance_seconds"), "Service checks performance", []string{"check_type", "performance_type", "operator"}, nil)
+
+	// Users
+	usersTotal      = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "users_total"), "Amount of users present on the system", nil, nil)
+	usersPrivileges = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "users_privileges_total"), "Amount of admin or regular users", []string{"privileges"}, nil)
+	usersStatus     = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "users_status_total"), "Amount of disabled or enabled users", []string{"status"}, nil)
 )
 
 type Exporter struct {
@@ -199,6 +212,10 @@ func (e *Exporter) Describe(ch chan<- *prometheus.Desc) {
 	ch <- servicechecks
 	ch <- hostchecksPerformance
 	ch <- servicechecksPerformance
+	// Users
+	ch <- usersTotal
+	ch <- usersPrivileges
+	ch <- usersStatus
 }
 
 func (e *Exporter) TestNagiosConnectivity(sslVerify bool, nagiosAPITimeout time.Duration) float64 {
@@ -245,7 +262,6 @@ func sanitizeAPIKeyErrors(err error) error {
 func QueryAPIs(url string, sslVerify bool, nagiosAPITimeout time.Duration) (body []byte) {
 
 	// https://github.com/prometheus/haproxy_exporter/blob/main/haproxy_exporter.go#L337-L345
-
 	tr := &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: !sslVerify}}
 
 	client := http.Client{
@@ -327,7 +343,7 @@ func (e *Exporter) QueryAPIsAndUpdateMetrics(ch chan<- prometheus.Metric, sslVer
 	// iterate through nested json
 	for _, v := range hostStatusObject.Hoststatus {
 
-		// for every hosts
+		// for every host
 		hostsCount++
 
 		if v.CheckType == 0 {
@@ -407,7 +423,7 @@ func (e *Exporter) QueryAPIsAndUpdateMetrics(ch chan<- prometheus.Metric, sslVer
 		servicesTotal, prometheus.GaugeValue, float64(serviceStatusObject.Recordcount),
 	)
 
-	var servicesCount, servicessCheckedCount, servicesScheduledCount, servicesActiveCheckCount,
+	var servicesCount, servicesCheckedCount, servicesScheduledCount, servicesActiveCheckCount,
 		servicesPassiveCheckCount, servicesOkCount, servicesWarnCount, servicesCriticalCount,
 		servicesUnknownCount, servicesFlapCount, servicesDowntimeCount, servicesProblemsAcknowledgedCount int
 
@@ -416,23 +432,20 @@ func (e *Exporter) QueryAPIsAndUpdateMetrics(ch chan<- prometheus.Metric, sslVer
 		servicesCount++
 
 		if v.HasBeenChecked == 0 {
-			servicessCheckedCount++
+			servicesCheckedCount++
 		}
 
 		if v.ShouldBeScheduled == 0 {
-			// TODO - is should_be_scheduled different than a services actually being scheduled?
 			servicesScheduledCount++
 		}
 
 		if v.CheckType == 0 {
-			// TODO - I'm a little shaky on check_type -> 1 being passive
 			servicesActiveCheckCount++
 		} else {
 			servicesPassiveCheckCount++
 		}
 
 		switch currentstate := v.CurrentState; currentstate {
-		// TODO - verify this order, e.g 1/2 are warn/crit
 		case 0:
 			servicesOkCount++
 		case 1:
@@ -599,7 +612,79 @@ func (e *Exporter) QueryAPIsAndUpdateMetrics(ch chan<- prometheus.Metric, sslVer
 		servicechecksPerformance, prometheus.GaugeValue, float64(systemStatusDetailObject.Nagioscore.Activeservicecheckperf.MinExecutionTime), "active", "execution", "max",
 	)
 
+	// user information
+	// we also need to tack on the optional parameter of `advanced` to get privilege information
+	systemUserURL := e.nagiosEndpoint + systemuserAPI + "?apikey=" + e.nagiosAPIKey + "&advanced=1"
+
+	body = QueryAPIs(systemUserURL, sslVerify, nagiosAPITimeout)
+	log.Debug("Queried API: ", systemuserAPI)
+
+	userStatusObject := userStatus{}
+
+	jsonErr = json.Unmarshal(body, &userStatusObject)
+	if jsonErr != nil {
+		log.Fatal(jsonErr)
+	}
+
+	var usersAdminCount, usersRegularCount, usersEnabledCount, usersDisabledCount int
+
+	ch <- prometheus.MustNewConstMetric(
+		usersTotal, prometheus.GaugeValue, float64(userStatusObject.Recordcount),
+	)
+
+	for _, v := range userStatusObject.Userstatus {
+
+		if v.Admin == 1 {
+			usersAdminCount++
+		} else {
+			usersRegularCount++
+		}
+
+		if v.Enabled == 1 {
+			usersEnabledCount++
+		} else {
+			usersDisabledCount++
+		}
+	}
+
+	ch <- prometheus.MustNewConstMetric(
+		usersStatus, prometheus.GaugeValue, float64(usersEnabledCount), "enabled",
+	)
+
+	ch <- prometheus.MustNewConstMetric(
+		usersStatus, prometheus.GaugeValue, float64(usersDisabledCount), "disabled",
+	)
+
+	ch <- prometheus.MustNewConstMetric(
+		usersPrivileges, prometheus.GaugeValue, float64(usersAdminCount), "admin",
+	)
+
+	ch <- prometheus.MustNewConstMetric(
+		usersPrivileges, prometheus.GaugeValue, float64(usersRegularCount), "user",
+	)
+
 	log.Info("Endpoint scraped and metrics updated")
+}
+
+// custom formatter modified from https://github.com/sirupsen/logrus/issues/719#issuecomment-536459432
+// https://stackoverflow.com/questions/48971780/how-to-change-the-format-of-log-output-in-logrus/48972299#48972299
+// required as Nagios XI API only supports giving the API token as a URL parameter, and thus can be leaked in the logs
+type nagiosFormatter struct {
+	log.TextFormatter
+	APIKey string
+}
+
+func (f *nagiosFormatter) Format(entry *log.Entry) ([]byte, error) {
+	log, newEntry := f.TextFormatter.Format(entry)
+
+	// there might be a better way to do this but, convert our log byte array to a string
+	logString := string(log[:])
+	// replace the secret APIKey with junk
+	cleanString := strings.ReplaceAll(logString, f.APIKey, "<redactedAPIKey>")
+	// return it to a byte and pass it on
+	cleanLog := []byte(cleanString)
+
+	return bytes.Trim(cleanLog, f.APIKey), newEntry
 }
 
 func main() {
@@ -632,6 +717,10 @@ func main() {
 	}
 
 	var conf Config = ReadConfig(*configPath)
+
+	formatter := nagiosFormatter{}
+	formatter.APIKey = conf.APIKey
+	log.SetFormatter(&formatter)
 
 	nagiosURL := *remoteAddress + nagiosAPIVersion + apiSlug
 
