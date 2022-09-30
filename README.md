@@ -5,10 +5,12 @@
 ![Go Report Card](https://goreportcard.com/badge/github.com/wbollock/nagios_exporter)
 [![contributions](https://img.shields.io/badge/contributions-welcome-brightgreen.svg?style=flat")](https://github.com/wbollock/nagios_exporter/issues)
 
-
 A Prometheus exporter currently supporting:
 
 * Nagios XI
+* Nagios Core 4
+* Nagios Core 3
+* CheckMK
 
 It includes metrics on the current state and configuration of Nagios. This includes the number of hosts, services, and information about their monitoring setup. For example, this exporter will output the number of flapping hosts, passive checks, or hosts in downtime.
 
@@ -21,6 +23,7 @@ Practical use cases for this exporter may include:
 This exporter does not output Nagios check results as Prometheus metrics; it is designed to export metrics of the Nagios monitoring server itself for meta-monitoring.
 
 ## Table of Contents
+
 - [nagios_exporter](#nagios_exporter)
   - [Table of Contents](#table-of-contents)
   - [Configuration](#configuration)
@@ -55,6 +58,25 @@ To see all available configuration flags:
 ```bash
 ./prometheus-nagios-exporter -h
 ```
+
+### Nagios Core 3/4 support
+
+This exporter also supports Nagios Core 3/4 and CheckMK, albeit with a subset of metrics and reliance on the `nagiosstats` binary. There is no RESTful API for either monitoring platform, so the exporter must be run directly on the Nagios host and have access to execute `nagiostats`.
+
+It is also recommended to pass the path of the Nagios configuration
+
+Typical location and usage of the binary:
+
+* Nagios Core 3/4: `/usr/local/nagios/bin/nagiostats -c /usr/local/nagios/etc/nagios.cfg`
+* CheckMK: `/omd/sites/<your-site>/bin/nagiostats -c /omd/sites/<your-site>/tmp/nagios/nagios.cfg`
+
+Example usage:
+
+```bash
+./nagios_exporter --nagios.stats_binary "/usr/local/nagios/bin/nagiostats -c /usr/local/nagios/etc/nagios.cfg"
+```
+
+Note that this flag nullifies all others. It cannot be used in conjunction with the Nagios XI API.
 
 ## Installation
 
