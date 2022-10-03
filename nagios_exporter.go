@@ -356,10 +356,6 @@ func (e *Exporter) QueryAPIsAndUpdateMetrics(ch chan<- prometheus.Metric, sslVer
 		versionInfo, prometheus.GaugeValue, 1, systemInfoObject.Version,
 	)
 
-	ch <- prometheus.MustNewConstMetric(
-		buildInfo, prometheus.GaugeValue, 1, Version, BuildDate, Commit,
-	)
-
 	// host status
 	hoststatusURL := e.nagiosEndpoint + hoststatusAPI + "?apikey=" + e.nagiosAPIKey
 
@@ -410,35 +406,7 @@ func (e *Exporter) QueryAPIsAndUpdateMetrics(ch chan<- prometheus.Metric, sslVer
 	}
 
 	ch <- prometheus.MustNewConstMetric(
-		hostsCheckedTotal, prometheus.GaugeValue, float64(hostsActiveCheckCount), "active",
-	)
-
-	ch <- prometheus.MustNewConstMetric(
-		hostsCheckedTotal, prometheus.GaugeValue, float64(hostsPassiveCheckCount), "passive",
-	)
-
-	ch <- prometheus.MustNewConstMetric(
-		hostsStatus, prometheus.GaugeValue, float64(hostsUpCount), "up",
-	)
-
-	ch <- prometheus.MustNewConstMetric(
-		hostsStatus, prometheus.GaugeValue, float64(hostsDownCount), "down",
-	)
-
-	ch <- prometheus.MustNewConstMetric(
-		hostsStatus, prometheus.GaugeValue, float64(hostsUnreachableCount), "unreachable",
-	)
-
-	ch <- prometheus.MustNewConstMetric(
-		hostsStatus, prometheus.GaugeValue, float64(hostsFlapCount), "flapping",
-	)
-
-	ch <- prometheus.MustNewConstMetric(
-		hostsDowntime, prometheus.GaugeValue, float64(hostsDowntimeCount),
-	)
-
-	ch <- prometheus.MustNewConstMetric(
-		hostsProblemsAcknowledged, prometheus.GaugeValue, float64(hostsProblemsAcknowledgedCount),
+		hostsProblemsAcknowledged, prometheus.GaugeValue, hostsProblemsAcknowledgedCount,
 	)
 
 	// service status
@@ -497,39 +465,7 @@ func (e *Exporter) QueryAPIsAndUpdateMetrics(ch chan<- prometheus.Metric, sslVer
 	}
 
 	ch <- prometheus.MustNewConstMetric(
-		servicesCheckedTotal, prometheus.GaugeValue, float64(servicesActiveCheckCount), "active",
-	)
-
-	ch <- prometheus.MustNewConstMetric(
-		servicesCheckedTotal, prometheus.GaugeValue, float64(servicesPassiveCheckCount), "passive",
-	)
-
-	ch <- prometheus.MustNewConstMetric(
-		servicesStatus, prometheus.GaugeValue, float64(servicesOkCount), "ok",
-	)
-
-	ch <- prometheus.MustNewConstMetric(
-		servicesStatus, prometheus.GaugeValue, float64(servicesWarnCount), "warn",
-	)
-
-	ch <- prometheus.MustNewConstMetric(
-		servicesStatus, prometheus.GaugeValue, float64(servicesCriticalCount), "critical",
-	)
-
-	ch <- prometheus.MustNewConstMetric(
-		servicesStatus, prometheus.GaugeValue, float64(servicesUnknownCount), "unknown",
-	)
-
-	ch <- prometheus.MustNewConstMetric(
-		servicesStatus, prometheus.GaugeValue, float64(servicesFlapCount), "flapping",
-	)
-
-	ch <- prometheus.MustNewConstMetric(
-		servicesDowntime, prometheus.GaugeValue, float64(servicesDowntimeCount),
-	)
-
-	ch <- prometheus.MustNewConstMetric(
-		servicesProblemsAcknowledged, prometheus.GaugeValue, float64(servicesProblemsAcknowledgedCount),
+		servicesProblemsAcknowledged, prometheus.GaugeValue, servicesProblemsAcknowledgedCount,
 	)
 
 	// system status
@@ -544,100 +480,6 @@ func (e *Exporter) QueryAPIsAndUpdateMetrics(ch chan<- prometheus.Metric, sslVer
 	if jsonErr != nil {
 		log.Fatal(jsonErr)
 	}
-
-	activeHostCheckSum := systemStatusDetailObject.Nagioscore.Activehostchecks.Val1 +
-		systemStatusDetailObject.Nagioscore.Activehostchecks.Val5 +
-		systemStatusDetailObject.Nagioscore.Activehostchecks.Val15
-
-	ch <- prometheus.MustNewConstHistogram(
-		hostchecks, uint64(activeHostCheckSum), float64(activeHostCheckSum), map[float64]uint64{
-			1:  uint64(systemStatusDetailObject.Nagioscore.Activehostchecks.Val1),
-			5:  uint64(systemStatusDetailObject.Nagioscore.Activehostchecks.Val5),
-			15: uint64(systemStatusDetailObject.Nagioscore.Activehostchecks.Val15)}, "active",
-	)
-
-	passiveHostCheckSum := systemStatusDetailObject.Nagioscore.Passivehostchecks.Val1 +
-		systemStatusDetailObject.Nagioscore.Passivehostchecks.Val5 +
-		systemStatusDetailObject.Nagioscore.Passivehostchecks.Val15
-
-	ch <- prometheus.MustNewConstHistogram(
-		hostchecks, uint64(passiveHostCheckSum), float64(passiveHostCheckSum), map[float64]uint64{
-			1:  uint64(systemStatusDetailObject.Nagioscore.Passivehostchecks.Val1),
-			5:  uint64(systemStatusDetailObject.Nagioscore.Passivehostchecks.Val5),
-			15: uint64(systemStatusDetailObject.Nagioscore.Passivehostchecks.Val15)}, "passive",
-	)
-
-	activeServiceCheckSum := systemStatusDetailObject.Nagioscore.Activeservicechecks.Val1 +
-		systemStatusDetailObject.Nagioscore.Activeservicechecks.Val5 +
-		systemStatusDetailObject.Nagioscore.Activeservicechecks.Val15
-
-	ch <- prometheus.MustNewConstHistogram(
-		servicechecks, uint64(activeServiceCheckSum), float64(activeServiceCheckSum), map[float64]uint64{
-			1:  uint64(systemStatusDetailObject.Nagioscore.Activeservicechecks.Val1),
-			5:  uint64(systemStatusDetailObject.Nagioscore.Activeservicechecks.Val5),
-			15: uint64(systemStatusDetailObject.Nagioscore.Activeservicechecks.Val15)}, "active",
-	)
-
-	passiveServiceCheckSum := systemStatusDetailObject.Nagioscore.Passiveservicechecks.Val1 +
-		systemStatusDetailObject.Nagioscore.Passiveservicechecks.Val5 +
-		systemStatusDetailObject.Nagioscore.Passiveservicechecks.Val15
-
-	ch <- prometheus.MustNewConstHistogram(
-		servicechecks, uint64(passiveServiceCheckSum), float64(passiveServiceCheckSum), map[float64]uint64{
-			1:  uint64(systemStatusDetailObject.Nagioscore.Passiveservicechecks.Val1),
-			5:  uint64(systemStatusDetailObject.Nagioscore.Passiveservicechecks.Val5),
-			15: uint64(systemStatusDetailObject.Nagioscore.Passiveservicechecks.Val15)}, "passive",
-	)
-
-	// active host check performance
-	ch <- prometheus.MustNewConstMetric(
-		hostchecksPerformance, prometheus.GaugeValue, float64(systemStatusDetailObject.Nagioscore.Activehostcheckperf.AvgLatency), "active", "latency", "avg",
-	)
-
-	ch <- prometheus.MustNewConstMetric(
-		hostchecksPerformance, prometheus.GaugeValue, float64(systemStatusDetailObject.Nagioscore.Activehostcheckperf.MinLatency), "active", "latency", "min",
-	)
-
-	ch <- prometheus.MustNewConstMetric(
-		hostchecksPerformance, prometheus.GaugeValue, float64(systemStatusDetailObject.Nagioscore.Activehostcheckperf.MaxLatency), "active", "latency", "max",
-	)
-
-	ch <- prometheus.MustNewConstMetric(
-		hostchecksPerformance, prometheus.GaugeValue, float64(systemStatusDetailObject.Nagioscore.Activehostcheckperf.AvgExecutionTime), "active", "execution", "avg",
-	)
-
-	ch <- prometheus.MustNewConstMetric(
-		hostchecksPerformance, prometheus.GaugeValue, float64(systemStatusDetailObject.Nagioscore.Activehostcheckperf.MinExecutionTime), "active", "execution", "min",
-	)
-
-	ch <- prometheus.MustNewConstMetric(
-		hostchecksPerformance, prometheus.GaugeValue, float64(systemStatusDetailObject.Nagioscore.Activehostcheckperf.MinExecutionTime), "active", "execution", "max",
-	)
-
-	// active service check performance
-	ch <- prometheus.MustNewConstMetric(
-		servicechecksPerformance, prometheus.GaugeValue, float64(systemStatusDetailObject.Nagioscore.Activeservicecheckperf.AvgLatency), "active", "latency", "avg",
-	)
-
-	ch <- prometheus.MustNewConstMetric(
-		servicechecksPerformance, prometheus.GaugeValue, float64(systemStatusDetailObject.Nagioscore.Activeservicecheckperf.MinLatency), "active", "latency", "min",
-	)
-
-	ch <- prometheus.MustNewConstMetric(
-		servicechecksPerformance, prometheus.GaugeValue, float64(systemStatusDetailObject.Nagioscore.Activeservicecheckperf.MaxLatency), "active", "latency", "max",
-	)
-
-	ch <- prometheus.MustNewConstMetric(
-		servicechecksPerformance, prometheus.GaugeValue, float64(systemStatusDetailObject.Nagioscore.Activeservicecheckperf.AvgExecutionTime), "active", "execution", "avg",
-	)
-
-	ch <- prometheus.MustNewConstMetric(
-		servicechecksPerformance, prometheus.GaugeValue, float64(systemStatusDetailObject.Nagioscore.Activeservicecheckperf.MinExecutionTime), "active", "execution", "min",
-	)
-
-	ch <- prometheus.MustNewConstMetric(
-		servicechecksPerformance, prometheus.GaugeValue, float64(systemStatusDetailObject.Nagioscore.Activeservicecheckperf.MinExecutionTime), "active", "execution", "max",
-	)
 
 	// user information
 	// we also need to tack on the optional parameter of `advanced` to get privilege information
@@ -675,76 +517,46 @@ func (e *Exporter) QueryAPIsAndUpdateMetrics(ch chan<- prometheus.Metric, sslVer
 	}
 
 	ch <- prometheus.MustNewConstMetric(
-		usersStatus, prometheus.GaugeValue, float64(usersEnabledCount), "enabled",
+		usersStatus, prometheus.GaugeValue, usersEnabledCount, "enabled",
 	)
 
 	ch <- prometheus.MustNewConstMetric(
-		usersStatus, prometheus.GaugeValue, float64(usersDisabledCount), "disabled",
+		usersStatus, prometheus.GaugeValue, usersDisabledCount, "disabled",
 	)
 
 	ch <- prometheus.MustNewConstMetric(
-		usersPrivileges, prometheus.GaugeValue, float64(usersAdminCount), "admin",
+		usersPrivileges, prometheus.GaugeValue, usersAdminCount, "admin",
 	)
 
 	ch <- prometheus.MustNewConstMetric(
-		usersPrivileges, prometheus.GaugeValue, float64(usersRegularCount), "user",
+		usersPrivileges, prometheus.GaugeValue, usersRegularCount, "user",
 	)
+
+	e.UpdateCommonMetrics(ch, hostsCount, hostsActiveCheckCount, hostsPassiveCheckCount, hostsUpCount, hostsDownCount, hostsUnreachableCount,
+		hostsFlapCount, hostsDowntimeCount,
+		servicesCount, servicesActiveCheckCount, servicesPassiveCheckCount, servicesOkCount, servicesWarnCount, servicesCriticalCount, servicesUnknownCount,
+		servicesFlapCount, servicesDowntimeCount,
+		systemStatusDetailObject.Nagioscore.Activehostchecks.Val1, systemStatusDetailObject.Nagioscore.Activehostchecks.Val5, systemStatusDetailObject.Nagioscore.Activehostchecks.Val15,
+		systemStatusDetailObject.Nagioscore.Passivehostchecks.Val1, systemStatusDetailObject.Nagioscore.Passivehostchecks.Val5, systemStatusDetailObject.Nagioscore.Passivehostchecks.Val15,
+		systemStatusDetailObject.Nagioscore.Activeservicechecks.Val1, systemStatusDetailObject.Nagioscore.Activeservicechecks.Val5, systemStatusDetailObject.Nagioscore.Activeservicechecks.Val15,
+		systemStatusDetailObject.Nagioscore.Passiveservicechecks.Val1, systemStatusDetailObject.Nagioscore.Passiveservicechecks.Val5, systemStatusDetailObject.Nagioscore.Passiveservicechecks.Val15, systemStatusDetailObject.Nagioscore.Activehostcheckperf.AvgLatency, systemStatusDetailObject.Nagioscore.Activehostcheckperf.MinLatency, systemStatusDetailObject.Nagioscore.Activehostcheckperf.MaxLatency, systemStatusDetailObject.Nagioscore.Activehostcheckperf.AvgExecutionTime, systemStatusDetailObject.Nagioscore.Activehostcheckperf.MinExecutionTime, systemStatusDetailObject.Nagioscore.Activehostcheckperf.MaxExecutionTime, systemStatusDetailObject.Nagioscore.Activeservicecheckperf.AvgLatency, systemStatusDetailObject.Nagioscore.Activeservicecheckperf.MinLatency, systemStatusDetailObject.Nagioscore.Activeservicecheckperf.MaxLatency, systemStatusDetailObject.Nagioscore.Activeservicecheckperf.AvgExecutionTime, systemStatusDetailObject.Nagioscore.Activeservicecheckperf.MinExecutionTime, systemStatusDetailObject.Nagioscore.Activeservicecheckperf.MaxExecutionTime)
 
 	log.Info("Endpoint scraped and metrics updated")
 }
 
-func (e *Exporter) QueryNagiostatsAndUpdateMetrics(ch chan<- prometheus.Metric, nagiostatsPath string, nagiosconfigPath string) {
-	// to get specific values, we output them in MRTG format
-	// we pass a comma seperated string of MRTG data - must be manually kept up to date
-	mrtgList := "NAGIOSVERSION,NUMHOSTS,NUMHSTACTCHK60M,NUMHSTPSVCHK60M,NUMHSTUP,NUMHSTDOWN,NUMHSTUNR,NUMHSTFLAPPING,NUMHSTDOWNTIME,NUMSERVICES,NUMSVCACTCHK60M,NUMSVCPSVCHK60M,NUMSVCOK,NUMSVCWARN,NUMSVCUNKN,NUMSVCCRIT,NUMSVCFLAPPING,NUMSVCDOWNTIME,NUMHSTACTCHK1M,NUMHSTACTCHK5M,NUMHSTACTCHK15M,NUMHSTPSVCHK1M,NUMHSTPSVCHK5M,NUMHSTPSVCHK15M,NUMSVCACTCHK1M,NUMSVCACTCHK5M,NUMSVCACTCHK15M,NUMSVCPSVCHK1M,NUMSVCPSVCHK5M,NUMSVCPSVCHK15M,AVGACTHSTLAT,MINACTHSTLAT,MAXACTHSTLAT,AVGACTHSTEXT,MINACTHSTEXT,MAXACTHSTEXT,AVGACTSVCLAT,MINACTSVCLAT,MAXACTSVCLAT,AVGACTSVCEXT,MINACTSVCEXT,MAXACTSVCEXT"
+func (e *Exporter) UpdateCommonMetrics(ch chan<- prometheus.Metric, hostsCount, hostsActiveCheckCount, hostsPassiveCheckCount, hostsUpCount, hostsDownCount, hostsUnreachableCount,
+	hostsFlapCount, hostsDowntimeCount, servicesCount, servicesActiveCheckCount, servicesPassiveCheckCount, servicesOkCount, servicesWarnCount, servicesCriticalCount, servicesUnknownCount,
+	servicesFlapCount, servicesDowntimeCount,
+	activehostchecks1m, activehostchecks5m, activehostchecks15m, passivehostchecks1m, passivehostchecks5m, passivehostchecks15m,
+	activeservicechecks1m, activeservicechecks5m, activeservicechecks15m, passiveservicechecks1m, passiveservicechecks5m, passiveservicechecks15m, activehostchecklatencyavg, activehostchecklatencymin, activehostchecklatencymax, activehostcheckexecutionavg, activehostcheckexecutionmin, activehostcheckexecutionmax, activeservicechecklatencyavg, activeservicechecklatencymin, activeservicechecklatencymax, activeservicecheckexecutionavg, activeservicecheckexecutionmin, activeservicecheckexecutionmax float64) {
 
-	// -m = mrtg; -D = use comma as delimiter, -d = MRTG list input
-	cmd := exec.Command(nagiostatsPath, "-c", nagiosconfigPath, "-m", "-D", ",", "-d", mrtgList)
-	var out bytes.Buffer
-	cmd.Stdout = &out
+	// Metrics common to both collection options
 
-	err := cmd.Run()
-
-	if err != nil {
-		log.Fatal(err)
-	}
-	log.Debug("Queried nagiostats: ", out.String())
-	// input our comma seperated list as metrics
-	cmdSplice := strings.Split(out.String(), ",")
-
-	// Need float64 values for metrics
-	metricSlice := make([]float64, 0, len(cmdSplice))
-
-	for _, metric := range cmdSplice {
-		metric, _ := strconv.ParseFloat(metric, 64)
-		metricSlice = append(metricSlice, metric)
-	}
-
-	var nagiosVersion string = cmdSplice[0] // NAGIOSVERSION
-	ch <- prometheus.MustNewConstMetric(
-		// we do want this value to be a string though as it's a label
-		versionInfo, prometheus.GaugeValue, 1, nagiosVersion,
-	)
-
-	// TODO - refactor this so both collection methods only call it once
 	ch <- prometheus.MustNewConstMetric(
 		buildInfo, prometheus.GaugeValue, 1, Version, BuildDate, Commit,
 	)
 
 	// host status
-	var hostsCount, hostsActiveCheckCount, hostsPassiveCheckCount, hostsUpCount, hostsDownCount, hostsUnreachableCount, hostsFlapCount, hostsDowntimeCount float64
-
-	// maintaining variables for each of these makes it slightly easier to parse
-	// its really horrible but not sure there's a better way
-
-	hostsCount = metricSlice[1]             // NUMHOSTS
-	hostsActiveCheckCount = metricSlice[2]  // NUMHSTACTCHK60M - technically only hosts actively checked in last hour
-	hostsPassiveCheckCount = metricSlice[3] // NUMHSTPSVCHK60M
-	hostsUpCount = metricSlice[4]           // NUMHSTUP
-	hostsDownCount = metricSlice[5]         // NUMHSTDOWN
-	hostsUnreachableCount = metricSlice[6]  // NUMHSTUNR
-	hostsFlapCount = metricSlice[7]         // NUMHSTFLAPPING
-	hostsDowntimeCount = metricSlice[8]     // NUMHSTDOWNTIME
 
 	ch <- prometheus.MustNewConstMetric(
 		hostsTotal, prometheus.GaugeValue, hostsCount,
@@ -779,18 +591,6 @@ func (e *Exporter) QueryNagiostatsAndUpdateMetrics(ch chan<- prometheus.Metric, 
 	)
 
 	// service status
-	var servicesCount, servicesActiveCheckCount,
-		servicesPassiveCheckCount, servicesOkCount, servicesWarnCount, servicesUnknownCount, servicesCriticalCount, servicesFlapCount, servicesDowntimeCount float64
-
-	servicesCount = metricSlice[9]              // NUMSERVICES
-	servicesActiveCheckCount = metricSlice[10]  // NUMSVCACTCHK60M
-	servicesPassiveCheckCount = metricSlice[11] // NUMSVCPSVCHK60M
-	servicesOkCount = metricSlice[12]           // NUMSVCOK
-	servicesWarnCount = metricSlice[13]         // NUMSVCWARN
-	servicesUnknownCount = metricSlice[14]      // NUMSVCUNKN
-	servicesCriticalCount = metricSlice[15]     // NUMSVCCRIT
-	servicesFlapCount = metricSlice[16]         // NUMSVCFLAPPING
-	servicesDowntimeCount = metricSlice[17]     // NUMSVCDOWNTIME
 
 	ch <- prometheus.MustNewConstMetric(
 		servicesTotal, prometheus.GaugeValue, servicesCount,
@@ -864,27 +664,6 @@ func (e *Exporter) QueryNagiostatsAndUpdateMetrics(ch chan<- prometheus.Metric, 
 			15: uint64(passiveservicechecks15m)}, "passive",
 	)
 
-	var activehostchecklatencyavg, activehostchecklatencymin, activehostchecklatencymax,
-		activehostcheckexecutionavg, activehostcheckexecutionmin, activehostcheckexecutionmax,
-		activeservicechecklatencyavg, activeservicechecklatencymin, activeservicechecklatencymax,
-		activeservicecheckexecutionavg, activeservicecheckexecutionmin, activeservicecheckexecutionmax float64
-
-	activehostchecklatencyavg = metricSlice[30] // AVGACTHSTLAT
-	activehostchecklatencymin = metricSlice[31] // MINACTHSTLAT
-	activehostchecklatencymax = metricSlice[32] // MAXACTHSTLAT
-
-	activehostcheckexecutionavg = metricSlice[33] // AVGACTHSTEXT
-	activehostcheckexecutionmin = metricSlice[34] // MINACTHSTEXT
-	activehostcheckexecutionmax = metricSlice[35] // MAXACTHSTEXT
-
-	activeservicechecklatencyavg = metricSlice[36] // AVGACTSVCLAT
-	activeservicechecklatencymin = metricSlice[37] // MINACTSVCLAT
-	activeservicechecklatencymax = metricSlice[38] // MAXACTSVCLAT
-
-	activeservicecheckexecutionavg = metricSlice[39] // AVGACTSVCEXT
-	activeservicecheckexecutionmin = metricSlice[40] // MINACTSVCEXT
-	activeservicecheckexecutionmax = metricSlice[41] // MAXACTSVCEXT
-
 	// active host check performance
 	ch <- prometheus.MustNewConstMetric(
 		hostchecksPerformance, prometheus.GaugeValue, activehostchecklatencyavg, "active", "latency", "avg",
@@ -934,6 +713,120 @@ func (e *Exporter) QueryNagiostatsAndUpdateMetrics(ch chan<- prometheus.Metric, 
 	ch <- prometheus.MustNewConstMetric(
 		servicechecksPerformance, prometheus.GaugeValue, activeservicecheckexecutionmax, "active", "execution", "max",
 	)
+
+}
+
+func (e *Exporter) QueryNagiostatsAndUpdateMetrics(ch chan<- prometheus.Metric, nagiostatsPath string, nagiosconfigPath string) {
+	// to get specific values, we output them in MRTG format
+	// we pass a comma seperated string of MRTG data - must be manually kept up to date
+	mrtgList := "NAGIOSVERSION,NUMHOSTS,NUMHSTACTCHK60M,NUMHSTPSVCHK60M,NUMHSTUP,NUMHSTDOWN,NUMHSTUNR,NUMHSTFLAPPING,NUMHSTDOWNTIME,NUMSERVICES,NUMSVCACTCHK60M,NUMSVCPSVCHK60M,NUMSVCOK,NUMSVCWARN,NUMSVCUNKN,NUMSVCCRIT,NUMSVCFLAPPING,NUMSVCDOWNTIME,NUMHSTACTCHK1M,NUMHSTACTCHK5M,NUMHSTACTCHK15M,NUMHSTPSVCHK1M,NUMHSTPSVCHK5M,NUMHSTPSVCHK15M,NUMSVCACTCHK1M,NUMSVCACTCHK5M,NUMSVCACTCHK15M,NUMSVCPSVCHK1M,NUMSVCPSVCHK5M,NUMSVCPSVCHK15M,AVGACTHSTLAT,MINACTHSTLAT,MAXACTHSTLAT,AVGACTHSTEXT,MINACTHSTEXT,MAXACTHSTEXT,AVGACTSVCLAT,MINACTSVCLAT,MAXACTSVCLAT,AVGACTSVCEXT,MINACTSVCEXT,MAXACTSVCEXT"
+
+	// -m = mrtg; -D = use comma as delimiter, -d = MRTG list input
+	cmd := exec.Command(nagiostatsPath, "-c", nagiosconfigPath, "-m", "-D", ",", "-d", mrtgList)
+	var out bytes.Buffer
+	cmd.Stdout = &out
+
+	err := cmd.Run()
+
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Debug("Queried nagiostats: ", out.String())
+	// input our comma seperated list as metrics
+	cmdSplice := strings.Split(out.String(), ",")
+
+	// Need float64 values for metrics
+	metricSlice := make([]float64, 0, len(cmdSplice))
+
+	for _, metric := range cmdSplice {
+		metric, _ := strconv.ParseFloat(metric, 64)
+		metricSlice = append(metricSlice, metric)
+	}
+
+	var nagiosVersion string = cmdSplice[0] // NAGIOSVERSION
+	ch <- prometheus.MustNewConstMetric(
+		// we do want this value to be a string though as it's a label
+		versionInfo, prometheus.GaugeValue, 1, nagiosVersion,
+	)
+
+	// host status
+	var hostsCount, hostsActiveCheckCount, hostsPassiveCheckCount, hostsUpCount, hostsDownCount, hostsUnreachableCount, hostsFlapCount, hostsDowntimeCount float64
+
+	// maintaining variables for each of these makes it slightly easier to parse
+	// its really horrible but not sure there's a better way
+
+	hostsCount = metricSlice[1]             // NUMHOSTS
+	hostsActiveCheckCount = metricSlice[2]  // NUMHSTACTCHK60M - technically only hosts actively checked in last hour
+	hostsPassiveCheckCount = metricSlice[3] // NUMHSTPSVCHK60M
+	hostsUpCount = metricSlice[4]           // NUMHSTUP
+	hostsDownCount = metricSlice[5]         // NUMHSTDOWN
+	hostsUnreachableCount = metricSlice[6]  // NUMHSTUNR
+	hostsFlapCount = metricSlice[7]         // NUMHSTFLAPPING
+	hostsDowntimeCount = metricSlice[8]     // NUMHSTDOWNTIME
+
+	// service status
+	var servicesCount, servicesActiveCheckCount,
+		servicesPassiveCheckCount, servicesOkCount, servicesWarnCount, servicesUnknownCount, servicesCriticalCount, servicesFlapCount, servicesDowntimeCount float64
+
+	servicesCount = metricSlice[9]              // NUMSERVICES
+	servicesActiveCheckCount = metricSlice[10]  // NUMSVCACTCHK60M
+	servicesPassiveCheckCount = metricSlice[11] // NUMSVCPSVCHK60M
+	servicesOkCount = metricSlice[12]           // NUMSVCOK
+	servicesWarnCount = metricSlice[13]         // NUMSVCWARN
+	servicesUnknownCount = metricSlice[14]      // NUMSVCUNKN
+	servicesCriticalCount = metricSlice[15]     // NUMSVCCRIT
+	servicesFlapCount = metricSlice[16]         // NUMSVCFLAPPING
+	servicesDowntimeCount = metricSlice[17]     // NUMSVCDOWNTIME
+
+	// check performance
+	var activehostchecks1m, activehostchecks5m, activehostchecks15m,
+		passivehostchecks1m, passivehostchecks5m, passivehostchecks15m,
+		activeservicechecks1m, activeservicechecks5m, activeservicechecks15m,
+		passiveservicechecks1m, passiveservicechecks5m, passiveservicechecks15m float64
+
+	activehostchecks1m = metricSlice[18]   // NUMHSTACTCHK1M
+	activehostchecks5m = metricSlice[19]   // NUMHSTACTCHK5M
+	activehostchecks15m = metricSlice[20]  // NUMHSTACTCHK15M
+	passivehostchecks1m = metricSlice[21]  // NUMHSTPSVCHK1M
+	passivehostchecks5m = metricSlice[22]  // NUMHSTPSVCHK5M
+	passivehostchecks15m = metricSlice[23] // NUMHSTPSVCHK15M
+
+	activeservicechecks1m = metricSlice[24]   // NUMSVCACTCHK1M
+	activeservicechecks5m = metricSlice[25]   // NUMSVCACTCHK5M
+	activeservicechecks15m = metricSlice[26]  // NUMSVCACTCHK15M
+	passiveservicechecks1m = metricSlice[27]  // NUMSVCPSVCHK1M
+	passiveservicechecks5m = metricSlice[28]  // NUMSVCPSVCHK5M
+	passiveservicechecks15m = metricSlice[29] // NUMSVCPSVCHK15M
+
+	var activehostchecklatencyavg, activehostchecklatencymin, activehostchecklatencymax,
+		activehostcheckexecutionavg, activehostcheckexecutionmin, activehostcheckexecutionmax,
+		activeservicechecklatencyavg, activeservicechecklatencymin, activeservicechecklatencymax,
+		activeservicecheckexecutionavg, activeservicecheckexecutionmin, activeservicecheckexecutionmax float64
+
+	activehostchecklatencyavg = metricSlice[30] // AVGACTHSTLAT
+	activehostchecklatencymin = metricSlice[31] // MINACTHSTLAT
+	activehostchecklatencymax = metricSlice[32] // MAXACTHSTLAT
+
+	activehostcheckexecutionavg = metricSlice[33] // AVGACTHSTEXT
+	activehostcheckexecutionmin = metricSlice[34] // MINACTHSTEXT
+	activehostcheckexecutionmax = metricSlice[35] // MAXACTHSTEXT
+
+	activeservicechecklatencyavg = metricSlice[36] // AVGACTSVCLAT
+	activeservicechecklatencymin = metricSlice[37] // MINACTSVCLAT
+	activeservicechecklatencymax = metricSlice[38] // MAXACTSVCLAT
+
+	activeservicecheckexecutionavg = metricSlice[39] // AVGACTSVCEXT
+	activeservicecheckexecutionmin = metricSlice[40] // MINACTSVCEXT
+	activeservicecheckexecutionmax = metricSlice[41] // MAXACTSVCEXT
+
+	e.UpdateCommonMetrics(ch, hostsCount, hostsActiveCheckCount, hostsPassiveCheckCount, hostsUpCount, hostsDownCount, hostsUnreachableCount,
+		hostsFlapCount, hostsDowntimeCount,
+		servicesCount, servicesActiveCheckCount, servicesPassiveCheckCount, servicesOkCount, servicesWarnCount, servicesCriticalCount, servicesUnknownCount,
+		servicesFlapCount, servicesDowntimeCount,
+		activehostchecks1m, activehostchecks5m, activehostchecks15m,
+		passivehostchecks1m, passivehostchecks5m, passivehostchecks15m,
+		activeservicechecks1m, activeservicechecks5m, activeservicechecks15m,
+		passiveservicechecks1m, passiveservicechecks5m, passiveservicechecks15m, activehostchecklatencyavg, activehostchecklatencymin, activehostchecklatencymax, activehostcheckexecutionavg, activehostcheckexecutionmin, activehostcheckexecutionmax, activeservicechecklatencyavg, activeservicechecklatencymin, activeservicechecklatencymax, activeservicecheckexecutionavg, activeservicecheckexecutionmin, activeservicecheckexecutionmax)
 
 	log.Info("Nagiostats scraped and metrics updated")
 }
