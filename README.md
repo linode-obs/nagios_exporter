@@ -119,10 +119,22 @@ Import the [dashboard](grafana/dashboard.json) template ([instructions](https://
 
 ## Troubleshooting
 
-Ensure `nagios_up` returns `1`, otherwise please check your API key and Nagios reachability, such as:
+Ensure `nagios_up` returns `1`.
+
+### NagiosXI
+
+Please check your API key and Nagios reachability:
 
 ```bash
 curl -GET "http://<nagios_url>/nagiosxi/api/v1/objects/host?apikey=<apikey>&pretty=1"
+```
+
+### Nagios Core 3/4, CheckMK
+
+Ensure the user running the Nagios Exporter can execute `nagiostats` fully:
+
+```bash
+sudo su <prometheus-user> -s /bin/bash -c "/usr/local/nagios/bin/nagiostats -c /usr/local/nagios/etc/nagios.cfg"
 ```
 
 ## Resources Used
