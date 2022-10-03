@@ -8,7 +8,9 @@ import (
 	"flag"
 	"io"
 	"net/http"
+	"os/exec"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -178,14 +180,18 @@ type Exporter struct {
 	nagiosEndpoint, nagiosAPIKey string
 	sslVerify                    bool
 	nagiosAPITimeout             time.Duration
+	nagiostatsPath               string
+	nagiosconfigPath             string
 }
 
-func NewExporter(nagiosEndpoint, nagiosAPIKey string, sslVerify bool, nagiosAPITimeout time.Duration) *Exporter {
+func NewExporter(nagiosEndpoint, nagiosAPIKey string, sslVerify bool, nagiosAPITimeout time.Duration, nagiostatsPath string, nagiosconfigPath string) *Exporter {
 	return &Exporter{
 		nagiosEndpoint:   nagiosEndpoint,
 		nagiosAPIKey:     nagiosAPIKey,
 		sslVerify:        sslVerify,
 		nagiosAPITimeout: nagiosAPITimeout,
+		nagiostatsPath:   nagiostatsPath,
+		nagiosconfigPath: nagiosconfigPath,
 	}
 }
 
@@ -194,16 +200,21 @@ func (e *Exporter) Describe(ch chan<- *prometheus.Desc) {
 	ch <- up
 	// Hosts
 	ch <- hostsTotal
-	ch <- hostsCheckedTotal
 	ch <- hostsStatus
 	ch <- hostsDowntime
-	ch <- hostsProblemsAcknowledged
+	if e.nagiostatsPath == "" {
+		// nagiostats has no support for ACK status
+		ch <- hostsProblemsAcknowledged
+		ch <- hostsCheckedTotal
+	}
 	// Services
 	ch <- servicesTotal
-	ch <- servicesCheckedTotal
 	ch <- servicesStatus
 	ch <- servicesDowntime
-	ch <- servicesProblemsAcknowledged
+	if e.nagiostatsPath == "" {
+		ch <- servicesProblemsAcknowledged
+		ch <- servicesCheckedTotal
+	}
 	// System
 	ch <- versionInfo
 	ch <- buildInfo
@@ -213,9 +224,12 @@ func (e *Exporter) Describe(ch chan<- *prometheus.Desc) {
 	ch <- hostchecksPerformance
 	ch <- servicechecksPerformance
 	// Users
-	ch <- usersTotal
-	ch <- usersPrivileges
-	ch <- usersStatus
+	if e.nagiostatsPath == "" {
+		// we cannot get user information from Nagios Core 3/4
+		ch <- usersTotal
+		ch <- usersPrivileges
+		ch <- usersStatus
+	}
 }
 
 func (e *Exporter) TestNagiosConnectivity(sslVerify bool, nagiosAPITimeout time.Duration) float64 {
@@ -235,20 +249,45 @@ func (e *Exporter) TestNagiosConnectivity(sslVerify bool, nagiosAPITimeout time.
 	return systemStatusObject.Running
 }
 
-func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
+func (e *Exporter) TestNagiosstatsBinary(nagiostatsPath string, nagiosconfigPath string) float64 {
 
-	nagiosStatus := e.TestNagiosConnectivity(e.sslVerify, e.nagiosAPITimeout)
+	cmd := exec.Command(nagiostatsPath, "-c", nagiosconfigPath)
+	err := cmd.Run()
 
-	if nagiosStatus == 0 {
-		log.Warn("Cannot connect to Nagios endpoint")
+	if err != nil {
+		log.Fatal(err)
+		return 0
 	}
 
-	ch <- prometheus.MustNewConstMetric(
-		up, prometheus.GaugeValue, nagiosStatus,
-	)
+	return 1
+}
 
-	e.QueryAPIsAndUpdateMetrics(ch, e.sslVerify, e.nagiosAPITimeout)
+func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 
+	if e.nagiostatsPath == "" {
+		nagiosStatus := e.TestNagiosConnectivity(e.sslVerify, e.nagiosAPITimeout)
+
+		if nagiosStatus == 0 {
+			log.Warn("Cannot connect to Nagios endpoint")
+		}
+
+		ch <- prometheus.MustNewConstMetric(
+			up, prometheus.GaugeValue, nagiosStatus,
+		)
+
+		e.QueryAPIsAndUpdateMetrics(ch, e.sslVerify, e.nagiosAPITimeout)
+	} else {
+		nagiosStatus := e.TestNagiosstatsBinary(e.nagiostatsPath, e.nagiosconfigPath)
+		if nagiosStatus == 0 {
+			log.Warn("Cannot execute nagiostats: ", e.nagiostatsPath)
+		}
+
+		ch <- prometheus.MustNewConstMetric(
+			up, prometheus.GaugeValue, nagiosStatus,
+		)
+
+		e.QueryNagiostatsAndUpdateMetrics(ch, e.nagiostatsPath, e.nagiosconfigPath)
+	}
 }
 
 // NagiosXI only supports submitting an API token as a URL parameter, so we need to scrub the API key from HTTP client errors
@@ -666,6 +705,271 @@ func (e *Exporter) QueryAPIsAndUpdateMetrics(ch chan<- prometheus.Metric, sslVer
 	log.Info("Endpoint scraped and metrics updated")
 }
 
+func (e *Exporter) QueryNagiostatsAndUpdateMetrics(ch chan<- prometheus.Metric, nagiostatsPath string, nagiosconfigPath string) {
+	// to get specific values, we output them in MRTG format
+	// we pass a comma seperated string of MRTG data - must be manually kept up to date
+	mrtgList := "NAGIOSVERSION,NUMHOSTS,NUMHSTACTCHK60M,NUMHSTPSVCHK60M,NUMHSTUP,NUMHSTDOWN,NUMHSTUNR,NUMHSTFLAPPING,NUMHSTDOWNTIME,NUMSERVICES,NUMSVCACTCHK60M,NUMSVCPSVCHK60M,NUMSVCOK,NUMSVCWARN,NUMSVCUNKN,NUMSVCCRIT,NUMSVCFLAPPING,NUMSVCDOWNTIME,NUMHSTACTCHK1M,NUMHSTACTCHK5M,NUMHSTACTCHK15M,NUMHSTPSVCHK1M,NUMHSTPSVCHK5M,NUMHSTPSVCHK15M,NUMSVCACTCHK1M,NUMSVCACTCHK5M,NUMSVCACTCHK15M,NUMSVCPSVCHK1M,NUMSVCPSVCHK5M,NUMSVCPSVCHK15M,AVGACTHSTLAT,MINACTHSTLAT,MAXACTHSTLAT,AVGACTHSTEXT,MINACTHSTEXT,MAXACTHSTEXT,AVGACTSVCLAT,MINACTSVCLAT,MAXACTSVCLAT,AVGACTSVCEXT,MINACTSVCEXT,MAXACTSVCEXT"
+
+	// -m = mrtg; -D = use comma as delimiter, -d = MRTG list input
+	cmd := exec.Command(nagiostatsPath, "-c", nagiosconfigPath, "-m", "-D", ",", "-d", mrtgList)
+	var out bytes.Buffer
+	cmd.Stdout = &out
+
+	err := cmd.Run()
+
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Debug("Queried nagiostats: ", out.String())
+	// input our comma seperated list as metrics
+	cmdSplice := strings.Split(out.String(), ",")
+
+	// Need float64 values for metrics
+	metricSlice := make([]float64, 0, len(cmdSplice))
+
+	for _, metric := range cmdSplice {
+		metric, _ := strconv.ParseFloat(metric, 64)
+		metricSlice = append(metricSlice, metric)
+	}
+
+	var nagiosVersion string = cmdSplice[0] // NAGIOSVERSION
+	ch <- prometheus.MustNewConstMetric(
+		// we do want this value to be a string though as it's a label
+		versionInfo, prometheus.GaugeValue, 1, nagiosVersion,
+	)
+
+	// TODO - refactor this so both collection methods only call it once
+	ch <- prometheus.MustNewConstMetric(
+		buildInfo, prometheus.GaugeValue, 1, Version, BuildDate, Commit,
+	)
+
+	// host status
+	var hostsCount, hostsActiveCheckCount, hostsPassiveCheckCount, hostsUpCount, hostsDownCount, hostsUnreachableCount, hostsFlapCount, hostsDowntimeCount float64
+
+	// maintaining variables for each of these makes it slightly easier to parse
+	// its really horrible but not sure there's a better way
+
+	hostsCount = metricSlice[1]             // NUMHOSTS
+	hostsActiveCheckCount = metricSlice[2]  // NUMHSTACTCHK60M - technically only hosts actively checked in last hour
+	hostsPassiveCheckCount = metricSlice[3] // NUMHSTPSVCHK60M
+	hostsUpCount = metricSlice[4]           // NUMHSTUP
+	hostsDownCount = metricSlice[5]         // NUMHSTDOWN
+	hostsUnreachableCount = metricSlice[6]  // NUMHSTUNR
+	hostsFlapCount = metricSlice[7]         // NUMHSTFLAPPING
+	hostsDowntimeCount = metricSlice[8]     // NUMHSTDOWNTIME
+
+	ch <- prometheus.MustNewConstMetric(
+		hostsTotal, prometheus.GaugeValue, hostsCount,
+	)
+
+	ch <- prometheus.MustNewConstMetric(
+		hostsCheckedTotal, prometheus.GaugeValue, hostsActiveCheckCount, "active",
+	)
+
+	ch <- prometheus.MustNewConstMetric(
+		hostsCheckedTotal, prometheus.GaugeValue, hostsPassiveCheckCount, "passive",
+	)
+
+	ch <- prometheus.MustNewConstMetric(
+		hostsStatus, prometheus.GaugeValue, hostsUpCount, "up",
+	)
+
+	ch <- prometheus.MustNewConstMetric(
+		hostsStatus, prometheus.GaugeValue, hostsDownCount, "down",
+	)
+
+	ch <- prometheus.MustNewConstMetric(
+		hostsStatus, prometheus.GaugeValue, hostsUnreachableCount, "unreachable",
+	)
+
+	ch <- prometheus.MustNewConstMetric(
+		hostsStatus, prometheus.GaugeValue, hostsFlapCount, "flapping",
+	)
+
+	ch <- prometheus.MustNewConstMetric(
+		hostsDowntime, prometheus.GaugeValue, hostsDowntimeCount,
+	)
+
+	// service status
+	var servicesCount, servicesActiveCheckCount,
+		servicesPassiveCheckCount, servicesOkCount, servicesWarnCount, servicesUnknownCount, servicesCriticalCount, servicesFlapCount, servicesDowntimeCount float64
+
+	servicesCount = metricSlice[9]              // NUMSERVICES
+	servicesActiveCheckCount = metricSlice[10]  // NUMSVCACTCHK60M
+	servicesPassiveCheckCount = metricSlice[11] // NUMSVCPSVCHK60M
+	servicesOkCount = metricSlice[12]           // NUMSVCOK
+	servicesWarnCount = metricSlice[13]         // NUMSVCWARN
+	servicesUnknownCount = metricSlice[14]      // NUMSVCUNKN
+	servicesCriticalCount = metricSlice[15]     // NUMSVCCRIT
+	servicesFlapCount = metricSlice[16]         // NUMSVCFLAPPING
+	servicesDowntimeCount = metricSlice[17]     // NUMSVCDOWNTIME
+
+	ch <- prometheus.MustNewConstMetric(
+		servicesTotal, prometheus.GaugeValue, servicesCount,
+	)
+
+	ch <- prometheus.MustNewConstMetric(
+		servicesCheckedTotal, prometheus.GaugeValue, servicesActiveCheckCount, "active",
+	)
+
+	ch <- prometheus.MustNewConstMetric(
+		servicesCheckedTotal, prometheus.GaugeValue, servicesPassiveCheckCount, "passive",
+	)
+
+	ch <- prometheus.MustNewConstMetric(
+		servicesStatus, prometheus.GaugeValue, servicesOkCount, "ok",
+	)
+
+	ch <- prometheus.MustNewConstMetric(
+		servicesStatus, prometheus.GaugeValue, servicesWarnCount, "warn",
+	)
+
+	ch <- prometheus.MustNewConstMetric(
+		servicesStatus, prometheus.GaugeValue, servicesCriticalCount, "critical",
+	)
+
+	ch <- prometheus.MustNewConstMetric(
+		servicesStatus, prometheus.GaugeValue, servicesUnknownCount, "unknown",
+	)
+
+	ch <- prometheus.MustNewConstMetric(
+		servicesStatus, prometheus.GaugeValue, servicesFlapCount, "flapping",
+	)
+
+	ch <- prometheus.MustNewConstMetric(
+		servicesDowntime, prometheus.GaugeValue, servicesDowntimeCount,
+	)
+
+	// check performance
+	var activehostchecks1m, activehostchecks5m, activehostchecks15m,
+		passivehostchecks1m, passivehostchecks5m, passivehostchecks15m,
+		activeservicechecks1m, activeservicechecks5m, activeservicechecks15m,
+		passiveservicechecks1m, passiveservicechecks5m, passiveservicechecks15m float64
+
+	activehostchecks1m = metricSlice[18]   // NUMHSTACTCHK1M
+	activehostchecks5m = metricSlice[19]   // NUMHSTACTCHK5M
+	activehostchecks15m = metricSlice[20]  // NUMHSTACTCHK15M
+	passivehostchecks1m = metricSlice[21]  // NUMHSTPSVCHK1M
+	passivehostchecks5m = metricSlice[22]  // NUMHSTPSVCHK5M
+	passivehostchecks15m = metricSlice[23] // NUMHSTPSVCHK15M
+
+	activeservicechecks1m = metricSlice[24]   // NUMSVCACTCHK1M
+	activeservicechecks5m = metricSlice[25]   // NUMSVCACTCHK5M
+	activeservicechecks15m = metricSlice[26]  // NUMSVCACTCHK15M
+	passiveservicechecks1m = metricSlice[27]  // NUMSVCPSVCHK1M
+	passiveservicechecks5m = metricSlice[28]  // NUMSVCPSVCHK5M
+	passiveservicechecks15m = metricSlice[29] // NUMSVCPSVCHK15M
+
+	activeHostCheckSum := activehostchecks1m + activehostchecks5m + activehostchecks15m
+
+	ch <- prometheus.MustNewConstHistogram(
+		hostchecks, uint64(activeHostCheckSum), float64(activeHostCheckSum), map[float64]uint64{
+			1:  uint64(activehostchecks1m),
+			5:  uint64(activehostchecks5m),
+			15: uint64(activehostchecks15m)}, "active",
+	)
+
+	passiveHostCheckSum := passivehostchecks1m + passivehostchecks5m + passivehostchecks15m
+
+	ch <- prometheus.MustNewConstHistogram(
+		hostchecks, uint64(passiveHostCheckSum), passiveHostCheckSum, map[float64]uint64{
+			1:  uint64(passivehostchecks1m),
+			5:  uint64(passivehostchecks5m),
+			15: uint64(passivehostchecks15m)}, "passive",
+	)
+
+	activeserviceCheckSum := activeservicechecks1m + activeservicechecks5m + activeservicechecks15m
+
+	ch <- prometheus.MustNewConstHistogram(
+		servicechecks, uint64(activeserviceCheckSum), float64(activeserviceCheckSum), map[float64]uint64{
+			1:  uint64(activeservicechecks1m),
+			5:  uint64(activeservicechecks5m),
+			15: uint64(activeservicechecks15m)}, "active",
+	)
+
+	passiveserviceCheckSum := passiveservicechecks1m + passiveservicechecks5m + passiveservicechecks15m
+
+	ch <- prometheus.MustNewConstHistogram(
+		servicechecks, uint64(passiveserviceCheckSum), passiveserviceCheckSum, map[float64]uint64{
+			1:  uint64(passiveservicechecks1m),
+			5:  uint64(passiveservicechecks5m),
+			15: uint64(passiveservicechecks15m)}, "passive",
+	)
+
+	var activehostchecklatencyavg, activehostchecklatencymin, activehostchecklatencymax,
+		activehostcheckexecutionavg, activehostcheckexecutionmin, activehostcheckexecutionmax,
+		activeservicechecklatencyavg, activeservicechecklatencymin, activeservicechecklatencymax,
+		activeservicecheckexecutionavg, activeservicecheckexecutionmin, activeservicecheckexecutionmax float64
+
+	activehostchecklatencyavg = metricSlice[30] // AVGACTHSTLAT
+	activehostchecklatencymin = metricSlice[31] // MINACTHSTLAT
+	activehostchecklatencymax = metricSlice[32] // MAXACTHSTLAT
+
+	activehostcheckexecutionavg = metricSlice[33] // AVGACTHSTEXT
+	activehostcheckexecutionmin = metricSlice[34] // MINACTHSTEXT
+	activehostcheckexecutionmax = metricSlice[35] // MAXACTHSTEXT
+
+	activeservicechecklatencyavg = metricSlice[36] // AVGACTSVCLAT
+	activeservicechecklatencymin = metricSlice[37] // MINACTSVCLAT
+	activeservicechecklatencymax = metricSlice[38] // MAXACTSVCLAT
+
+	activeservicecheckexecutionavg = metricSlice[39] // AVGACTSVCEXT
+	activeservicecheckexecutionmin = metricSlice[40] // MINACTSVCEXT
+	activeservicecheckexecutionmax = metricSlice[41] // MAXACTSVCEXT
+
+	// active host check performance
+	ch <- prometheus.MustNewConstMetric(
+		hostchecksPerformance, prometheus.GaugeValue, activehostchecklatencyavg, "active", "latency", "avg",
+	)
+
+	ch <- prometheus.MustNewConstMetric(
+		hostchecksPerformance, prometheus.GaugeValue, activehostchecklatencymin, "active", "latency", "min",
+	)
+
+	ch <- prometheus.MustNewConstMetric(
+		hostchecksPerformance, prometheus.GaugeValue, activehostchecklatencymax, "active", "latency", "max",
+	)
+
+	ch <- prometheus.MustNewConstMetric(
+		hostchecksPerformance, prometheus.GaugeValue, activehostcheckexecutionavg, "active", "execution", "avg",
+	)
+
+	ch <- prometheus.MustNewConstMetric(
+		hostchecksPerformance, prometheus.GaugeValue, activehostcheckexecutionmin, "active", "execution", "min",
+	)
+
+	ch <- prometheus.MustNewConstMetric(
+		hostchecksPerformance, prometheus.GaugeValue, activehostcheckexecutionmax, "active", "execution", "max",
+	)
+
+	// active service check performance
+	ch <- prometheus.MustNewConstMetric(
+		servicechecksPerformance, prometheus.GaugeValue, activeservicechecklatencyavg, "active", "latency", "avg",
+	)
+
+	ch <- prometheus.MustNewConstMetric(
+		servicechecksPerformance, prometheus.GaugeValue, activeservicechecklatencymin, "active", "latency", "min",
+	)
+
+	ch <- prometheus.MustNewConstMetric(
+		servicechecksPerformance, prometheus.GaugeValue, activeservicechecklatencymax, "active", "latency", "max",
+	)
+
+	ch <- prometheus.MustNewConstMetric(
+		servicechecksPerformance, prometheus.GaugeValue, activeservicecheckexecutionavg, "active", "execution", "avg",
+	)
+
+	ch <- prometheus.MustNewConstMetric(
+		servicechecksPerformance, prometheus.GaugeValue, activeservicecheckexecutionmin, "active", "execution", "min",
+	)
+
+	ch <- prometheus.MustNewConstMetric(
+		servicechecksPerformance, prometheus.GaugeValue, activeservicecheckexecutionmax, "active", "execution", "max",
+	)
+
+	log.Info("Nagiostats scraped and metrics updated")
+}
+
 // custom formatter modified from https://github.com/sirupsen/logrus/issues/719#issuecomment-536459432
 // https://stackoverflow.com/questions/48971780/how-to-change-the-format-of-log-output-in-logrus/48972299#48972299
 // required as Nagios XI API only supports giving the API token as a URL parameter, and thus can be leaked in the logs
@@ -705,6 +1009,10 @@ func main() {
 			"Config file path")
 		logLevel = flag.String("log.level", "info",
 			"Minimum Log level [debug, info]")
+		statsBinary = flag.String("nagios.stats_binary", "",
+			"Path of nagiostats binary and configuration (e.g /usr/local/nagios/bin/nagiostats -c /usr/local/nagios/etc/nagios.cfg)")
+		nagiosConfigPath = flag.String("nagios.config_path", "",
+			"Nagios configuration path for use with nagiostats binary (e.g /usr/local/nagios/etc/nagios.cfg)")
 	)
 
 	flag.Parse()
@@ -725,7 +1033,7 @@ func main() {
 	nagiosURL := *remoteAddress + nagiosAPIVersion + apiSlug
 
 	// convert timeout flag to seconds
-	exporter := NewExporter(nagiosURL, conf.APIKey, *sslVerify, time.Duration(*nagiosAPITimeout)*time.Second)
+	exporter := NewExporter(nagiosURL, conf.APIKey, *sslVerify, time.Duration(*nagiosAPITimeout)*time.Second, *statsBinary, *nagiosConfigPath)
 	prometheus.MustRegister(exporter)
 
 	log.Info("Using connection endpoint: ", *remoteAddress)
