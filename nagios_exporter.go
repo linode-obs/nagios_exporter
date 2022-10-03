@@ -540,7 +540,7 @@ func (e *Exporter) QueryAPIsAndUpdateMetrics(ch chan<- prometheus.Metric, sslVer
 		servicesProblemsAcknowledged, prometheus.GaugeValue, float64(servicesProblemsAcknowledgedCount),
 	)
 
-	// service status
+	// system status
 	systemStatusDetailURL := e.nagiosEndpoint + systemstatusDetailAPI + "?apikey=" + e.nagiosAPIKey
 
 	body = QueryAPIs(systemStatusDetailURL, sslVerify, nagiosAPITimeout)
