@@ -49,36 +49,36 @@ type systemStatusDetail struct {
 			AvgLatency       float64 `json:"avg_latency,string"`
 			MaxExecutionTime float64 `json:"max_execution_time,string"`
 			MaxLatency       float64 `json:"max_latency,string"`
-			MinExecutionTime int64   `json:"min_execution_time,string"`
-			MinLatency       int64   `json:"min_latency,string"`
+			MinExecutionTime float64 `json:"min_execution_time,string"`
+			MinLatency       float64 `json:"min_latency,string"`
 		} `json:"activehostcheckperf"`
 		Activehostchecks struct {
-			Val1  int64 `json:"val1,string"`
-			Val15 int64 `json:"val15,string"`
-			Val5  int64 `json:"val5,string"`
+			Val1  float64 `json:"val1,string"`
+			Val15 float64 `json:"val15,string"`
+			Val5  float64 `json:"val5,string"`
 		} `json:"activehostchecks"`
 		Activeservicecheckperf struct {
 			AvgExecutionTime float64 `json:"avg_execution_time,string"`
 			AvgLatency       float64 `json:"avg_latency,string"`
 			MaxExecutionTime float64 `json:"max_execution_time,string"`
 			MaxLatency       float64 `json:"max_latency,string"`
-			MinExecutionTime int64   `json:"min_execution_time,string"`
-			MinLatency       int64   `json:"min_latency,string"`
+			MinExecutionTime float64 `json:"min_execution_time,string"`
+			MinLatency       float64 `json:"min_latency,string"`
 		} `json:"activeservicecheckperf"`
 		Activeservicechecks struct {
-			Val1  int64 `json:"val1,string"`
-			Val15 int64 `json:"val15,string"`
-			Val5  int64 `json:"val5,string"`
+			Val1  float64 `json:"val1,string"`
+			Val15 float64 `json:"val15,string"`
+			Val5  float64 `json:"val5,string"`
 		} `json:"activeservicechecks"`
 		Passivehostchecks struct {
-			Val1  int64 `json:"val1,string"`
-			Val15 int64 `json:"val15,string"`
-			Val5  int64 `json:"val5,string"`
+			Val1  float64 `json:"val1,string"`
+			Val15 float64 `json:"val15,string"`
+			Val5  float64 `json:"val5,string"`
 		} `json:"passivehostchecks"`
 		Passiveservicechecks struct {
-			Val1  int64 `json:"val1,string"`
-			Val15 int64 `json:"val15,string"`
-			Val5  int64 `json:"val5,string"`
+			Val1  float64 `json:"val1,string"`
+			Val15 float64 `json:"val15,string"`
+			Val5  float64 `json:"val5,string"`
 		} `json:"passiveservicechecks"`
 		Updated string `json:"updated"`
 	} `json:"nagioscore"`
@@ -90,19 +90,19 @@ type systemInfo struct {
 
 // generated with https://github.com/bashtian/jsonutils
 type hostStatus struct {
-	Recordcount int64 `json:"recordcount"`
+	Recordcount float64 `json:"recordcount"`
 	Hoststatus  []struct {
 		HostObjectID               float64 `json:"host_object_id,string"`
 		CheckType                  float64 `json:"check_type,string"`
 		CurrentState               float64 `json:"current_state,string"`
 		IsFlapping                 float64 `json:"is_flapping,string"`
 		ScheduledDowntimeDepth     float64 `json:"scheduled_downtime_depth,string"`
-		ProblemHasBeenAcknowledged int64   `json:"problem_has_been_acknowledged,string"`
+		ProblemHasBeenAcknowledged float64 `json:"problem_has_been_acknowledged,string"`
 	} `json:"hoststatus"`
 }
 
 type serviceStatus struct {
-	Recordcount   int64 `json:"recordcount"`
+	Recordcount   float64 `json:"recordcount"`
 	Servicestatus []struct {
 		HasBeenChecked             float64 `json:"has_been_checked,string"`
 		ShouldBeScheduled          float64 `json:"should_be_scheduled,string"`
@@ -110,16 +110,16 @@ type serviceStatus struct {
 		CurrentState               float64 `json:"current_state,string"`
 		IsFlapping                 float64 `json:"is_flapping,string"`
 		ScheduledDowntimeDepth     float64 `json:"scheduled_downtime_depth,string"`
-		ProblemHasBeenAcknowledged int64   `json:"problem_has_been_acknowledged,string"`
+		ProblemHasBeenAcknowledged float64 `json:"problem_has_been_acknowledged,string"`
 	} `json:"servicestatus"`
 }
 
 type userStatus struct {
 	// yes, this field is named records even though every other endpoint is `recordcount`...
-	Recordcount int64 `json:"records"`
+	Recordcount float64 `json:"records"`
 	Userstatus  []struct {
-		Admin   int64 `json:"admin,string"`
-		Enabled int64 `json:"enabled,string"`
+		Admin   float64 `json:"admin,string"`
+		Enabled float64 `json:"enabled,string"`
 	} `json:"users"`
 }
 
@@ -373,11 +373,7 @@ func (e *Exporter) QueryAPIsAndUpdateMetrics(ch chan<- prometheus.Metric, sslVer
 		log.Fatal(jsonErr)
 	}
 
-	ch <- prometheus.MustNewConstMetric(
-		hostsTotal, prometheus.GaugeValue, float64(hostStatusObject.Recordcount),
-	)
-
-	var hostsCount, hostsActiveCheckCount, hostsPassiveCheckCount, hostsUpCount, hostsDownCount, hostsUnreachableCount, hostsFlapCount, hostsDowntimeCount, hostsProblemsAcknowledgedCount int
+	var hostsCount, hostsActiveCheckCount, hostsPassiveCheckCount, hostsUpCount, hostsDownCount, hostsUnreachableCount, hostsFlapCount, hostsDowntimeCount, hostsProblemsAcknowledgedCount float64
 
 	// iterate through nested json
 	for _, v := range hostStatusObject.Hoststatus {
@@ -458,13 +454,9 @@ func (e *Exporter) QueryAPIsAndUpdateMetrics(ch chan<- prometheus.Metric, sslVer
 		log.Fatal(jsonErr)
 	}
 
-	ch <- prometheus.MustNewConstMetric(
-		servicesTotal, prometheus.GaugeValue, float64(serviceStatusObject.Recordcount),
-	)
-
 	var servicesCount, servicesScheduledCount, servicesActiveCheckCount,
 		servicesPassiveCheckCount, servicesOkCount, servicesWarnCount, servicesCriticalCount,
-		servicesUnknownCount, servicesFlapCount, servicesDowntimeCount, servicesProblemsAcknowledgedCount int
+		servicesUnknownCount, servicesFlapCount, servicesDowntimeCount, servicesProblemsAcknowledgedCount float64
 
 	for _, v := range serviceStatusObject.Servicestatus {
 
@@ -661,10 +653,10 @@ func (e *Exporter) QueryAPIsAndUpdateMetrics(ch chan<- prometheus.Metric, sslVer
 		log.Fatal(jsonErr)
 	}
 
-	var usersAdminCount, usersRegularCount, usersEnabledCount, usersDisabledCount int
+	var usersAdminCount, usersRegularCount, usersEnabledCount, usersDisabledCount float64
 
 	ch <- prometheus.MustNewConstMetric(
-		usersTotal, prometheus.GaugeValue, float64(userStatusObject.Recordcount),
+		usersTotal, prometheus.GaugeValue, userStatusObject.Recordcount,
 	)
 
 	for _, v := range userStatusObject.Userstatus {
@@ -836,30 +828,10 @@ func (e *Exporter) QueryNagiostatsAndUpdateMetrics(ch chan<- prometheus.Metric, 
 		servicesDowntime, prometheus.GaugeValue, servicesDowntimeCount,
 	)
 
-	// check performance
-	var activehostchecks1m, activehostchecks5m, activehostchecks15m,
-		passivehostchecks1m, passivehostchecks5m, passivehostchecks15m,
-		activeservicechecks1m, activeservicechecks5m, activeservicechecks15m,
-		passiveservicechecks1m, passiveservicechecks5m, passiveservicechecks15m float64
-
-	activehostchecks1m = metricSlice[18]   // NUMHSTACTCHK1M
-	activehostchecks5m = metricSlice[19]   // NUMHSTACTCHK5M
-	activehostchecks15m = metricSlice[20]  // NUMHSTACTCHK15M
-	passivehostchecks1m = metricSlice[21]  // NUMHSTPSVCHK1M
-	passivehostchecks5m = metricSlice[22]  // NUMHSTPSVCHK5M
-	passivehostchecks15m = metricSlice[23] // NUMHSTPSVCHK15M
-
-	activeservicechecks1m = metricSlice[24]   // NUMSVCACTCHK1M
-	activeservicechecks5m = metricSlice[25]   // NUMSVCACTCHK5M
-	activeservicechecks15m = metricSlice[26]  // NUMSVCACTCHK15M
-	passiveservicechecks1m = metricSlice[27]  // NUMSVCPSVCHK1M
-	passiveservicechecks5m = metricSlice[28]  // NUMSVCPSVCHK5M
-	passiveservicechecks15m = metricSlice[29] // NUMSVCPSVCHK15M
-
 	activeHostCheckSum := activehostchecks1m + activehostchecks5m + activehostchecks15m
 
 	ch <- prometheus.MustNewConstHistogram(
-		hostchecks, uint64(activeHostCheckSum), float64(activeHostCheckSum), map[float64]uint64{
+		hostchecks, uint64(activeHostCheckSum), activeHostCheckSum, map[float64]uint64{
 			1:  uint64(activehostchecks1m),
 			5:  uint64(activehostchecks5m),
 			15: uint64(activehostchecks15m)}, "active",
@@ -877,7 +849,7 @@ func (e *Exporter) QueryNagiostatsAndUpdateMetrics(ch chan<- prometheus.Metric, 
 	activeserviceCheckSum := activeservicechecks1m + activeservicechecks5m + activeservicechecks15m
 
 	ch <- prometheus.MustNewConstHistogram(
-		servicechecks, uint64(activeserviceCheckSum), float64(activeserviceCheckSum), map[float64]uint64{
+		servicechecks, uint64(activeserviceCheckSum), activeserviceCheckSum, map[float64]uint64{
 			1:  uint64(activeservicechecks1m),
 			5:  uint64(activeservicechecks5m),
 			15: uint64(activeservicechecks15m)}, "active",
