@@ -67,13 +67,17 @@ It is also recommended to pass the path of the Nagios configuration
 
 Typical location and usage of the binary:
 
-* Nagios Core 3/4: `/usr/local/nagios/bin/nagiostats -c /usr/local/nagios/etc/nagios.cfg`
-* CheckMK: `/omd/sites/<your-site>/bin/nagiostats -c /omd/sites/<your-site>/tmp/nagios/nagios.cfg`
+* Nagios Core 3/4:
+  * `--nagios.stats_binary`: `/usr/local/nagios/bin/nagiostats`
+  * `--nagios.config_path`: `/usr/local/nagios/etc/nagios.cfg`
+* CheckMK:
+  * `--nagios.stats_binary`: `/omd/sites/<your-site>/bin/nagiostats`
+  * `--nagios.config_path`: `/omd/sites/<your-site>/tmp/nagios/nagios.cfg`
 
 Example usage:
 
 ```bash
-./nagios_exporter --nagios.stats_binary "/usr/local/nagios/bin/nagiostats -c /usr/local/nagios/etc/nagios.cfg"
+./nagios_exporter --nagios.stats_binary "/usr/local/nagios/bin/nagiostats" --nagios.config_path "/usr/local/nagios/etc/nagios.cfg"
 ```
 
 Note that this flag nullifies all others. It cannot be used in conjunction with the Nagios XI API.
