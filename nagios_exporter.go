@@ -1020,13 +1020,22 @@ func main() {
 		log.SetLevel(log.InfoLevel)
 	}
 
-	var conf Config = ReadConfig(*configPath)
+	var nagiosURL string
+	var conf Config
 
-	formatter := nagiosFormatter{}
-	formatter.APIKey = conf.APIKey
-	log.SetFormatter(&formatter)
+	// if we _aren't_ using nagiostats, it'll be a blank string
+	if *statsBinary == "" {
+		conf = ReadConfig(*configPath)
 
-	nagiosURL := *remoteAddress + nagiosAPIVersion + apiSlug
+		formatter := nagiosFormatter{}
+		formatter.APIKey = conf.APIKey
+		log.SetFormatter(&formatter)
+
+		nagiosURL = *remoteAddress + nagiosAPIVersion + apiSlug
+	} else {
+		// if we're using nagiostats, set a dummy API key here
+		conf.APIKey = ""
+	}
 
 	// convert timeout flag to seconds
 	exporter := NewExporter(nagiosURL, conf.APIKey, *sslVerify, time.Duration(*nagiosAPITimeout)*time.Second, *statsBinary, *nagiosConfigPath)
