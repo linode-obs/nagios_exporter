@@ -462,17 +462,13 @@ func (e *Exporter) QueryAPIsAndUpdateMetrics(ch chan<- prometheus.Metric, sslVer
 		servicesTotal, prometheus.GaugeValue, float64(serviceStatusObject.Recordcount),
 	)
 
-	var servicesCount, servicesCheckedCount, servicesScheduledCount, servicesActiveCheckCount,
+	var servicesCount, servicesScheduledCount, servicesActiveCheckCount,
 		servicesPassiveCheckCount, servicesOkCount, servicesWarnCount, servicesCriticalCount,
 		servicesUnknownCount, servicesFlapCount, servicesDowntimeCount, servicesProblemsAcknowledgedCount int
 
 	for _, v := range serviceStatusObject.Servicestatus {
 
 		servicesCount++
-
-		if v.HasBeenChecked == 0 {
-			servicesCheckedCount++
-		}
 
 		if v.ShouldBeScheduled == 0 {
 			servicesScheduledCount++
@@ -513,7 +509,7 @@ func (e *Exporter) QueryAPIsAndUpdateMetrics(ch chan<- prometheus.Metric, sslVer
 	)
 
 	ch <- prometheus.MustNewConstMetric(
-		servicesCheckedTotal, prometheus.GaugeValue, float64(hostsPassiveCheckCount), "passive",
+		servicesCheckedTotal, prometheus.GaugeValue, float64(servicesPassiveCheckCount), "passive",
 	)
 
 	ch <- prometheus.MustNewConstMetric(
@@ -525,7 +521,7 @@ func (e *Exporter) QueryAPIsAndUpdateMetrics(ch chan<- prometheus.Metric, sslVer
 	)
 
 	ch <- prometheus.MustNewConstMetric(
-		servicesStatus, prometheus.GaugeValue, float64(servicesWarnCount), "critical",
+		servicesStatus, prometheus.GaugeValue, float64(servicesCriticalCount), "critical",
 	)
 
 	ch <- prometheus.MustNewConstMetric(
