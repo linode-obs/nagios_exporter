@@ -1041,7 +1041,12 @@ func main() {
 	exporter := NewExporter(nagiosURL, conf.APIKey, *sslVerify, time.Duration(*nagiosAPITimeout)*time.Second, *statsBinary, *nagiosConfigPath)
 	prometheus.MustRegister(exporter)
 
-	log.Info("Using connection endpoint: ", *remoteAddress)
+	if *statsBinary == "" {
+		log.Info("Using connection endpoint: ", *remoteAddress)
+	} else {
+		log.Info("Using nagiostats binary: ", *statsBinary)
+		log.Info("Using Nagios configiration: ", *nagiosConfigPath)
+	}
 
 	http.Handle(*metricsPath, promhttp.Handler())
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
