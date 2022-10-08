@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="img/nagios_exporter_logo.jpg">
+</p>
+
 # nagios_exporter
 
 [![license](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/wbollock/nagios_exporter/blob/master/LICENSE)
