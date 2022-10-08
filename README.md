@@ -31,12 +31,15 @@ This exporter does not output Nagios check results as Prometheus metrics; it is 
 - [nagios_exporter](#nagios_exporter)
   - [Table of Contents](#table-of-contents)
   - [Configuration](#configuration)
+    - [Nagios Core 3/4 support](#nagios-core-34-support)
   - [Installation](#installation)
     - [Debian/RPM package](#debianrpm-package)
     - [Binary](#binary)
     - [Source](#source)
   - [Grafana](#grafana)
   - [Troubleshooting](#troubleshooting)
+    - [NagiosXI](#nagiosxi)
+    - [Nagios Core 3/4, CheckMK](#nagios-core-34-checkmk)
   - [Resources Used](#resources-used)
 
 ## Configuration
