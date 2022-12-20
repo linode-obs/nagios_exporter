@@ -28,7 +28,7 @@ This exporter does not output Nagios check results as Prometheus metrics; it is 
 
 ## Table of Contents
 
-- [nagios_exporter](#nagios_exporter)
+- [nagios\_exporter](#nagios_exporter)
   - [Table of Contents](#table-of-contents)
   - [Configuration](#configuration)
     - [Nagios Core 3/4 support](#nagios-core-34-support)
@@ -41,6 +41,7 @@ This exporter does not output Nagios check results as Prometheus metrics; it is 
     - [NagiosXI](#nagiosxi)
     - [Nagios Core 3/4, CheckMK](#nagios-core-34-checkmk)
   - [Resources Used](#resources-used)
+  - [Contributors](#contributors)
 
 ## Configuration
 
@@ -154,3 +155,14 @@ sudo su <prometheus-user> -s /bin/bash -c "/usr/local/nagios/bin/nagiostats -c /
 * [jsonutils](https://github.com/bashtian/jsonutils)
 * [goreleaser](https://github.com/goreleaser/goreleaser)
 * [nfpm](https://github.com/goreleaser/nfpm)
+
+## Contributors
+
+<!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
+<!-- prettier-ignore-start -->
+<!-- markdownlint-disable -->
+
+<!-- markdownlint-restore -->
+<!-- prettier-ignore-end -->
+
+<!-- ALL-CONTRIBUTORS-LIST:END -->
