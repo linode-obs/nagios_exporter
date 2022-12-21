@@ -153,8 +153,9 @@ var (
 	hostsStatus               = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "hosts_status_total"), "Amount of hosts in different states", []string{"status"}, nil)
 	hostsDowntime             = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "hosts_downtime_total"), "Amount of hosts in downtime", nil, nil)
 	hostsProblemsAcknowledged = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "hosts_acknowledges_total"), "Amount of host problems acknowledged", nil, nil)
-	hostsCheckLatency         = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "hosts_check_latency"), "Host check latency", []string{"check_type", "performance_type"}, nil)
-	hostsCheckExecution       = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "hosts_check_execution"), "Host check execution", []string{"check_type", "performance_type"}, nil)
+	// naming is a little inconsistent but matches system detail buckets... whoops
+	hostsCheckLatency   = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "host_checks_latency"), "Host check latency", []string{"check_type", "performance_type"}, nil)
+	hostsCheckExecution = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "host_checks_execution"), "Host check execution", []string{"check_type", "performance_type"}, nil)
 
 	// Services
 	servicesTotal                = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "services_total"), "Amount of services present in configuration", nil, nil)
@@ -162,8 +163,8 @@ var (
 	servicesStatus               = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "services_status_total"), "Amount of services in different states", []string{"status"}, nil)
 	servicesDowntime             = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "services_downtime_total"), "Amount of services in downtime", nil, nil)
 	servicesProblemsAcknowledged = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "services_acknowledges_total"), "Amount of service problems acknowledged", nil, nil)
-	servicesCheckLatency         = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "services_check_latency"), "Service check latency", []string{"check_type", "performance_type"}, nil)
-	servicesCheckExecution       = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "services_check_execution"), "Service check execution", []string{"check_type", "performance_type"}, nil)
+	servicesCheckLatency         = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "service_checks_latency"), "Service check latency", []string{"check_type", "performance_type"}, nil)
+	servicesCheckExecution       = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "service_checks_execution"), "Service check execution", []string{"check_type", "performance_type"}, nil)
 
 	// System
 	versionInfo = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "version_info"), "Nagios version information", []string{"version"}, nil)
