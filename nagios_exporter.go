@@ -256,7 +256,7 @@ func (e *Exporter) TestNagiosConnectivity(sslVerify bool, nagiosAPITimeout time.
 
 	jsonErr := json.Unmarshal(body, &systemStatusObject)
 	if jsonErr != nil {
-		log.Fatal(jsonErr)
+		return 0
 	}
 
 	return systemStatusObject.Running
