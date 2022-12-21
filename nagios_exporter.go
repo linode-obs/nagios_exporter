@@ -98,6 +98,8 @@ type hostStatus struct {
 		IsFlapping                 float64 `json:"is_flapping,string"`
 		ScheduledDowntimeDepth     float64 `json:"scheduled_downtime_depth,string"`
 		ProblemHasBeenAcknowledged float64 `json:"problem_has_been_acknowledged,string"`
+		Latency                    float64 `json:"latency,string"`
+		ExecutionTime              float64 `json:"execution_time,string"`
 	} `json:"hoststatus"`
 }
 
@@ -111,6 +113,8 @@ type serviceStatus struct {
 		IsFlapping                 float64 `json:"is_flapping,string"`
 		ScheduledDowntimeDepth     float64 `json:"scheduled_downtime_depth,string"`
 		ProblemHasBeenAcknowledged float64 `json:"problem_has_been_acknowledged,string"`
+		Latency                    float64 `json:"latency,string"`
+		ExecutionTime              float64 `json:"execution_time,string"`
 	} `json:"servicestatus"`
 }
 
@@ -149,6 +153,9 @@ var (
 	hostsStatus               = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "hosts_status_total"), "Amount of hosts in different states", []string{"status"}, nil)
 	hostsDowntime             = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "hosts_downtime_total"), "Amount of hosts in downtime", nil, nil)
 	hostsProblemsAcknowledged = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "hosts_acknowledges_total"), "Amount of host problems acknowledged", nil, nil)
+	// naming is a little inconsistent but matches system detail buckets... whoops
+	hostsCheckLatency   = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "host_checks_latency"), "Host check latency", []string{"check_type", "performance_type"}, nil)
+	hostsCheckExecution = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "host_checks_execution"), "Host check execution", []string{"check_type", "performance_type"}, nil)
 
 	// Services
 	servicesTotal                = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "services_total"), "Amount of services present in configuration", nil, nil)
@@ -156,6 +163,8 @@ var (
 	servicesStatus               = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "services_status_total"), "Amount of services in different states", []string{"status"}, nil)
 	servicesDowntime             = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "services_downtime_total"), "Amount of services in downtime", nil, nil)
 	servicesProblemsAcknowledged = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "services_acknowledges_total"), "Amount of service problems acknowledged", nil, nil)
+	servicesCheckLatency         = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "service_checks_latency"), "Service check latency", []string{"check_type", "performance_type"}, nil)
+	servicesCheckExecution       = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "service_checks_execution"), "Service check execution", []string{"check_type", "performance_type"}, nil)
 
 	// System
 	versionInfo = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "version_info"), "Nagios version information", []string{"version"}, nil)
@@ -203,9 +212,11 @@ func (e *Exporter) Describe(ch chan<- *prometheus.Desc) {
 	ch <- hostsStatus
 	ch <- hostsDowntime
 	if e.nagiostatsPath == "" {
-		// nagiostats has no support for ACK status
+		// metrics only available from the API, no `nagiostats` support
 		ch <- hostsProblemsAcknowledged
 		ch <- hostsCheckedTotal
+		ch <- hostsCheckLatency
+		ch <- hostsCheckExecution
 	}
 	// Services
 	ch <- servicesTotal
@@ -214,6 +225,8 @@ func (e *Exporter) Describe(ch chan<- *prometheus.Desc) {
 	if e.nagiostatsPath == "" {
 		ch <- servicesProblemsAcknowledged
 		ch <- servicesCheckedTotal
+		ch <- servicesCheckLatency
+		ch <- servicesCheckExecution
 	}
 	// System
 	ch <- versionInfo
@@ -338,6 +351,82 @@ func QueryAPIs(url string, sslVerify bool, nagiosAPITimeout time.Duration) (body
 	return body
 }
 
+func histogramProducer(bucket1, bucket2, bucket3, bucket4, bucket5, bucket6, bucket7, bucket8, bucket9, bucket10, step1, step2, step3, step4, step5, step6, step7, step8, step9, step10, comparisonValue float64) (float64, float64, float64, float64, float64, float64, float64, float64, float64, float64) {
+	// pretty lame as this requires exactly 10 buckets
+	// remember histogram cumulative so every leave off the smallest bucket each time
+
+	switch value := comparisonValue; {
+	case 0.0 <= value && value <= step1:
+		bucket1++
+		bucket2++
+		bucket3++
+		bucket4++
+		bucket5++
+		bucket6++
+		bucket7++
+		bucket8++
+		bucket9++
+		bucket10++
+		// fmt.Println("value is! ", value)
+		// fmt.Println("all buckets between 0.0 and ", step1)
+	case step1 < value && value <= step2:
+		bucket2++
+		bucket3++
+		bucket4++
+		bucket5++
+		bucket6++
+		bucket7++
+		bucket8++
+		bucket9++
+		bucket10++
+	case step2 < value && value <= step3:
+		bucket3++
+		bucket4++
+		bucket5++
+		bucket6++
+		bucket7++
+		bucket8++
+		bucket9++
+		bucket10++
+	case step3 < value && value <= step4:
+		bucket4++
+		bucket5++
+		bucket6++
+		bucket7++
+		bucket8++
+		bucket9++
+		bucket10++
+	case step4 < value && value <= step5:
+		bucket5++
+		bucket6++
+		bucket7++
+		bucket8++
+		bucket9++
+		bucket10++
+	case step5 < value && value <= step6:
+		bucket6++
+		bucket7++
+		bucket8++
+		bucket9++
+		bucket10++
+	case step6 < value && value <= step7:
+		bucket7++
+		bucket8++
+		bucket9++
+		bucket10++
+	case step7 < value && value <= step8:
+		bucket8++
+		bucket9++
+		bucket10++
+	case step8 < value && value <= step9:
+		bucket9++
+		bucket10++
+	case step9 < value && value <= step10:
+		bucket10++
+
+	}
+	return bucket1, bucket2, bucket3, bucket4, bucket5, bucket6, bucket7, bucket8, bucket9, bucket10
+}
 func (e *Exporter) QueryAPIsAndUpdateMetrics(ch chan<- prometheus.Metric, sslVerify bool, nagiosAPITimeout time.Duration) {
 
 	// get system status
@@ -371,6 +460,13 @@ func (e *Exporter) QueryAPIsAndUpdateMetrics(ch chan<- prometheus.Metric, sslVer
 
 	var hostsCount, hostsActiveCheckCount, hostsPassiveCheckCount, hostsUpCount, hostsDownCount, hostsUnreachableCount, hostsFlapCount, hostsDowntimeCount, hostsProblemsAcknowledgedCount float64
 
+	// not sure if these variable names are awful or acceptable
+	var hostsActiveCheckLatencySum, hostsActiveCheckLatencyHundredthSecond, hostsActiveCheckLatencyTenthSecond,
+		hostsActiveCheckLatencyHalfSecond, hostsActiveCheckLatency1s, hostsActiveCheckLatency3s, hostsActiveCheckLatency5s, hostsActiveCheckLatency7s, hostsActiveCheckLatency10s, hostsActiveCheckLatency12s, hostsActiveCheckLatency15s float64
+
+	var hostsActiveCheckExecutionSum, hostsActiveCheckExecutionHundredthSecond, hostsActiveCheckExecutionFifthHundredthSecond,
+		hostsActiveCheckExecutionTenthSecond, hostsActiveCheckExecutionThirdSecond, hostsActiveCheckExecutionHalfSecond, hostsActiveCheckExecutionSeventhSecond, hostsActiveCheckExecution1s, hostsActiveCheckExecution1Halfs, hostsActiveCheckExecution2s, hostsActiveCheckExecution2Halfs float64
+
 	// iterate through nested json
 	for _, v := range hostStatusObject.Hoststatus {
 
@@ -379,8 +475,23 @@ func (e *Exporter) QueryAPIsAndUpdateMetrics(ch chan<- prometheus.Metric, sslVer
 
 		if v.CheckType == 0 {
 			hostsActiveCheckCount++
+
+			// beware all ye who enter here and try to understand this
+
+			hostsActiveCheckLatencyHundredthSecond, hostsActiveCheckLatencyTenthSecond,
+				hostsActiveCheckLatencyHalfSecond, hostsActiveCheckLatency1s, hostsActiveCheckLatency3s, hostsActiveCheckLatency5s, hostsActiveCheckLatency7s, hostsActiveCheckLatency10s, hostsActiveCheckLatency12s, hostsActiveCheckLatency15s = histogramProducer(hostsActiveCheckLatencyHundredthSecond, hostsActiveCheckLatencyTenthSecond,
+				hostsActiveCheckLatencyHalfSecond, hostsActiveCheckLatency1s, hostsActiveCheckLatency3s, hostsActiveCheckLatency5s, hostsActiveCheckLatency7s, hostsActiveCheckLatency10s, hostsActiveCheckLatency12s, hostsActiveCheckLatency15s, 0.01, 0.1, 0.5, 1.0, 3.0, 5.0, 7.0, 10.0, 12.5, 15.0, v.Latency)
+
+			hostsActiveCheckExecutionHundredthSecond, hostsActiveCheckExecutionFifthHundredthSecond,
+				hostsActiveCheckExecutionTenthSecond, hostsActiveCheckExecutionThirdSecond, hostsActiveCheckExecutionHalfSecond, hostsActiveCheckExecutionSeventhSecond, hostsActiveCheckExecution1s, hostsActiveCheckExecution1Halfs, hostsActiveCheckExecution2s, hostsActiveCheckExecution2Halfs = histogramProducer(hostsActiveCheckExecutionHundredthSecond, hostsActiveCheckExecutionFifthHundredthSecond,
+				hostsActiveCheckExecutionTenthSecond, hostsActiveCheckExecutionThirdSecond, hostsActiveCheckExecutionHalfSecond, hostsActiveCheckExecutionSeventhSecond, hostsActiveCheckExecution1s, hostsActiveCheckExecution1Halfs, hostsActiveCheckExecution2s, hostsActiveCheckExecution2Halfs, 0.01, 0.05, 0.1, 0.3, 0.5, 0.7, 1.0, 1.5, 2.0, 2.5, v.ExecutionTime)
+
+			hostsActiveCheckLatencySum += v.Latency
+			hostsActiveCheckExecutionSum += v.ExecutionTime
+
 		} else {
 			hostsPassiveCheckCount++
+			// remember there is no service check execution time/latency, hence lack of histogram here
 		}
 
 		switch currentstate := v.CurrentState; currentstate {
@@ -403,10 +514,41 @@ func (e *Exporter) QueryAPIsAndUpdateMetrics(ch chan<- prometheus.Metric, sslVer
 		if v.ProblemHasBeenAcknowledged == 1 {
 			hostsProblemsAcknowledgedCount++
 		}
+
 	}
 
 	ch <- prometheus.MustNewConstMetric(
 		hostsProblemsAcknowledged, prometheus.GaugeValue, hostsProblemsAcknowledgedCount,
+	)
+
+	ch <- prometheus.MustNewConstHistogram(
+		hostsCheckLatency, uint64(hostsActiveCheckCount), hostsActiveCheckLatencySum, map[float64]uint64{
+			0.01: uint64(hostsActiveCheckLatencyHundredthSecond),
+			0.1:  uint64(hostsActiveCheckLatencyTenthSecond),
+			0.5:  uint64(hostsActiveCheckLatencyHalfSecond),
+			1.0:  uint64(hostsActiveCheckLatency1s),
+			3.0:  uint64(hostsActiveCheckLatency3s),
+			5.0:  uint64(hostsActiveCheckLatency5s),
+			7.0:  uint64(hostsActiveCheckLatency7s),
+			10.0: uint64(hostsActiveCheckLatency10s),
+			12.5: uint64(hostsActiveCheckLatency12s),
+			15.0: uint64(hostsActiveCheckLatency15s)},
+		"active", "latency",
+	)
+
+	ch <- prometheus.MustNewConstHistogram(
+		hostsCheckLatency, uint64(hostsActiveCheckCount), hostsActiveCheckExecutionSum, map[float64]uint64{
+			0.01: uint64(hostsActiveCheckExecutionHundredthSecond),
+			0.05: uint64(hostsActiveCheckExecutionFifthHundredthSecond),
+			0.1:  uint64(hostsActiveCheckExecutionTenthSecond),
+			0.3:  uint64(hostsActiveCheckExecutionThirdSecond),
+			0.5:  uint64(hostsActiveCheckExecutionHalfSecond),
+			0.7:  uint64(hostsActiveCheckExecutionSeventhSecond),
+			1.0:  uint64(hostsActiveCheckExecution1s),
+			1.5:  uint64(hostsActiveCheckExecution1Halfs),
+			2.0:  uint64(hostsActiveCheckExecution2s),
+			2.5:  uint64(hostsActiveCheckExecution2Halfs)},
+		"active", "execution",
 	)
 
 	// service status
@@ -426,6 +568,12 @@ func (e *Exporter) QueryAPIsAndUpdateMetrics(ch chan<- prometheus.Metric, sslVer
 		servicesPassiveCheckCount, servicesOkCount, servicesWarnCount, servicesCriticalCount,
 		servicesUnknownCount, servicesFlapCount, servicesDowntimeCount, servicesProblemsAcknowledgedCount float64
 
+	var servicesActiveCheckLatencySum, servicesActiveCheckLatencyHundredthSecond, servicesActiveCheckLatencyTenthSecond,
+		servicesActiveCheckLatencyHalfSecond, servicesActiveCheckLatency1s, servicesActiveCheckLatency3s, servicesActiveCheckLatency5s, servicesActiveCheckLatency7s, servicesActiveCheckLatency10s, servicesActiveCheckLatency12s, servicesActiveCheckLatency15s float64
+
+	var servicesActiveCheckExecutionSum, servicesActiveCheckExecutionHundredthSecond, servicesActiveCheckExecutionFifthHundredthSecond,
+		servicesActiveCheckExecutionTenthSecond, servicesActiveCheckExecutionThirdSecond, servicesActiveCheckExecutionHalfSecond, servicesActiveCheckExecutionSeventhSecond, servicesActiveCheckExecution1s, servicesActiveCheckExecution1Halfs, servicesActiveCheckExecution2s, servicesActiveCheckExecution2Halfs float64
+
 	for _, v := range serviceStatusObject.Servicestatus {
 
 		servicesCount++
@@ -436,6 +584,17 @@ func (e *Exporter) QueryAPIsAndUpdateMetrics(ch chan<- prometheus.Metric, sslVer
 
 		if v.CheckType == 0 {
 			servicesActiveCheckCount++
+
+			servicesActiveCheckLatencyHundredthSecond, servicesActiveCheckLatencyTenthSecond,
+				servicesActiveCheckLatencyHalfSecond, servicesActiveCheckLatency1s, servicesActiveCheckLatency3s, servicesActiveCheckLatency5s, servicesActiveCheckLatency7s, servicesActiveCheckLatency10s, servicesActiveCheckLatency12s, servicesActiveCheckLatency15s = histogramProducer(servicesActiveCheckLatencyHundredthSecond, servicesActiveCheckLatencyTenthSecond,
+				servicesActiveCheckLatencyHalfSecond, servicesActiveCheckLatency1s, servicesActiveCheckLatency3s, servicesActiveCheckLatency5s, servicesActiveCheckLatency7s, servicesActiveCheckLatency10s, servicesActiveCheckLatency12s, servicesActiveCheckLatency15s, 0.01, 0.1, 0.5, 1.0, 3.0, 5.0, 7.0, 10.0, 12.5, 15.0, v.Latency)
+
+			servicesActiveCheckExecutionHundredthSecond, servicesActiveCheckExecutionFifthHundredthSecond,
+				servicesActiveCheckExecutionTenthSecond, servicesActiveCheckExecutionThirdSecond, servicesActiveCheckExecutionHalfSecond, servicesActiveCheckExecutionSeventhSecond, servicesActiveCheckExecution1s, servicesActiveCheckExecution1Halfs, servicesActiveCheckExecution2s, servicesActiveCheckExecution2Halfs = histogramProducer(servicesActiveCheckExecutionHundredthSecond, servicesActiveCheckExecutionFifthHundredthSecond,
+				servicesActiveCheckExecutionTenthSecond, servicesActiveCheckExecutionThirdSecond, servicesActiveCheckExecutionHalfSecond, servicesActiveCheckExecutionSeventhSecond, servicesActiveCheckExecution1s, servicesActiveCheckExecution1Halfs, servicesActiveCheckExecution2s, servicesActiveCheckExecution2Halfs, 0.01, 0.05, 0.1, 0.3, 0.5, 0.7, 1.0, 1.5, 2.0, 2.5, v.ExecutionTime)
+
+			servicesActiveCheckLatencySum += v.Latency
+			servicesActiveCheckExecutionSum += v.ExecutionTime
 		} else {
 			servicesPassiveCheckCount++
 		}
@@ -466,6 +625,36 @@ func (e *Exporter) QueryAPIsAndUpdateMetrics(ch chan<- prometheus.Metric, sslVer
 
 	ch <- prometheus.MustNewConstMetric(
 		servicesProblemsAcknowledged, prometheus.GaugeValue, servicesProblemsAcknowledgedCount,
+	)
+
+	ch <- prometheus.MustNewConstHistogram(
+		servicesCheckLatency, uint64(servicesActiveCheckCount), servicesActiveCheckLatencySum, map[float64]uint64{
+			0.01: uint64(servicesActiveCheckLatencyHundredthSecond),
+			0.1:  uint64(servicesActiveCheckLatencyTenthSecond),
+			0.5:  uint64(servicesActiveCheckLatencyHalfSecond),
+			1.0:  uint64(servicesActiveCheckLatency1s),
+			3.0:  uint64(servicesActiveCheckLatency3s),
+			5.0:  uint64(servicesActiveCheckLatency5s),
+			7.0:  uint64(servicesActiveCheckLatency7s),
+			10.0: uint64(servicesActiveCheckLatency10s),
+			12.5: uint64(servicesActiveCheckLatency12s),
+			15.0: uint64(servicesActiveCheckLatency15s)},
+		"active", "latency",
+	)
+
+	ch <- prometheus.MustNewConstHistogram(
+		servicesCheckLatency, uint64(servicesActiveCheckCount), servicesActiveCheckExecutionSum, map[float64]uint64{
+			0.01: uint64(servicesActiveCheckExecutionHundredthSecond),
+			0.05: uint64(servicesActiveCheckExecutionFifthHundredthSecond),
+			0.1:  uint64(servicesActiveCheckExecutionTenthSecond),
+			0.3:  uint64(servicesActiveCheckExecutionThirdSecond),
+			0.5:  uint64(servicesActiveCheckExecutionHalfSecond),
+			0.7:  uint64(servicesActiveCheckExecutionSeventhSecond),
+			1.0:  uint64(servicesActiveCheckExecution1s),
+			1.5:  uint64(servicesActiveCheckExecution1Halfs),
+			2.0:  uint64(servicesActiveCheckExecution2s),
+			2.5:  uint64(servicesActiveCheckExecution2Halfs)},
+		"active", "execution",
 	)
 
 	// system status
