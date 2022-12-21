@@ -459,8 +459,12 @@ func (e *Exporter) QueryAPIsAndUpdateMetrics(ch chan<- prometheus.Metric, sslVer
 
 	var hostsCount, hostsActiveCheckCount, hostsPassiveCheckCount, hostsUpCount, hostsDownCount, hostsUnreachableCount, hostsFlapCount, hostsDowntimeCount, hostsProblemsAcknowledgedCount float64
 
+	// not sure if these variable names are awful or acceptable
 	var hostsActiveCheckLatencySum, hostsActiveCheckLatencyHundredthSecond, hostsActiveCheckLatencyTenthSecond,
 		hostsActiveCheckLatencyHalfSecond, hostsActiveCheckLatency1s, hostsActiveCheckLatency3s, hostsActiveCheckLatency5s, hostsActiveCheckLatency7s, hostsActiveCheckLatency10s, hostsActiveCheckLatency12s, hostsActiveCheckLatency15s float64
+
+	var hostsActiveCheckExecutionSum, hostsActiveCheckExecutionHundredthSecond, hostsActiveCheckExecutionFifthHundredthSecond,
+		hostsActiveCheckExecutionTenthSecond, hostsActiveCheckExecutionThirdSecond, hostsActiveCheckExecutionHalfSecond, hostsActiveCheckExecutionSeventhSecond, hostsActiveCheckExecution1s, hostsActiveCheckExecution1Halfs, hostsActiveCheckExecution2s, hostsActiveCheckExecution2Halfs float64
 
 	// iterate through nested json
 	for _, v := range hostStatusObject.Hoststatus {
@@ -471,14 +475,22 @@ func (e *Exporter) QueryAPIsAndUpdateMetrics(ch chan<- prometheus.Metric, sslVer
 		if v.CheckType == 0 {
 			hostsActiveCheckCount++
 
+			// beware all ye who enter here and try to understand this
+
 			hostsActiveCheckLatencyHundredthSecond, hostsActiveCheckLatencyTenthSecond,
 				hostsActiveCheckLatencyHalfSecond, hostsActiveCheckLatency1s, hostsActiveCheckLatency3s, hostsActiveCheckLatency5s, hostsActiveCheckLatency7s, hostsActiveCheckLatency10s, hostsActiveCheckLatency12s, hostsActiveCheckLatency15s = histogramProducer(hostsActiveCheckLatencyHundredthSecond, hostsActiveCheckLatencyTenthSecond,
 				hostsActiveCheckLatencyHalfSecond, hostsActiveCheckLatency1s, hostsActiveCheckLatency3s, hostsActiveCheckLatency5s, hostsActiveCheckLatency7s, hostsActiveCheckLatency10s, hostsActiveCheckLatency12s, hostsActiveCheckLatency15s, 0.01, 0.1, 0.5, 1.0, 3.0, 5.0, 7.0, 10.0, 12.5, 15.0, v.Latency)
 
+			hostsActiveCheckExecutionHundredthSecond, hostsActiveCheckExecutionFifthHundredthSecond,
+				hostsActiveCheckExecutionTenthSecond, hostsActiveCheckExecutionThirdSecond, hostsActiveCheckExecutionHalfSecond, hostsActiveCheckExecutionSeventhSecond, hostsActiveCheckExecution1s, hostsActiveCheckExecution1Halfs, hostsActiveCheckExecution2s, hostsActiveCheckExecution2Halfs = histogramProducer(hostsActiveCheckExecutionHundredthSecond, hostsActiveCheckExecutionFifthHundredthSecond,
+				hostsActiveCheckExecutionTenthSecond, hostsActiveCheckExecutionThirdSecond, hostsActiveCheckExecutionHalfSecond, hostsActiveCheckExecutionSeventhSecond, hostsActiveCheckExecution1s, hostsActiveCheckExecution1Halfs, hostsActiveCheckExecution2s, hostsActiveCheckExecution2Halfs, 0.01, 0.05, 0.1, 0.3, 0.5, 0.7, 1.0, 1.5, 2.0, 2.5, v.ExecutionTime)
+
 			hostsActiveCheckLatencySum += v.Latency
+			hostsActiveCheckExecutionSum += v.ExecutionTime
 
 		} else {
 			hostsPassiveCheckCount++
+			// remember there is no service check execution time/latency, hence lack of histogram here
 		}
 
 		switch currentstate := v.CurrentState; currentstate {
@@ -521,6 +533,21 @@ func (e *Exporter) QueryAPIsAndUpdateMetrics(ch chan<- prometheus.Metric, sslVer
 			12.5: uint64(hostsActiveCheckLatency12s),
 			15.0: uint64(hostsActiveCheckLatency15s)},
 		"active", "latency",
+	)
+
+	ch <- prometheus.MustNewConstHistogram(
+		hostsCheckLatency, uint64(hostsActiveCheckCount), hostsActiveCheckExecutionSum, map[float64]uint64{
+			0.01: uint64(hostsActiveCheckExecutionHundredthSecond),
+			0.05: uint64(hostsActiveCheckExecutionFifthHundredthSecond),
+			0.1:  uint64(hostsActiveCheckExecutionTenthSecond),
+			0.3:  uint64(hostsActiveCheckExecutionThirdSecond),
+			0.5:  uint64(hostsActiveCheckExecutionHalfSecond),
+			0.7:  uint64(hostsActiveCheckExecutionSeventhSecond),
+			1.0:  uint64(hostsActiveCheckExecution1s),
+			1.5:  uint64(hostsActiveCheckExecution1Halfs),
+			2.0:  uint64(hostsActiveCheckExecution2s),
+			2.5:  uint64(hostsActiveCheckExecution2Halfs)},
+		"active", "execution",
 	)
 
 	// service status
