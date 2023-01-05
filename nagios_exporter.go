@@ -537,7 +537,7 @@ func (e *Exporter) QueryAPIsAndUpdateMetrics(ch chan<- prometheus.Metric, sslVer
 	)
 
 	ch <- prometheus.MustNewConstHistogram(
-		hostsCheckLatency, uint64(hostsActiveCheckCount), hostsActiveCheckExecutionSum, map[float64]uint64{
+		hostsCheckExecution, uint64(hostsActiveCheckCount), hostsActiveCheckExecutionSum, map[float64]uint64{
 			0.01: uint64(hostsActiveCheckExecutionHundredthSecond),
 			0.05: uint64(hostsActiveCheckExecutionFifthHundredthSecond),
 			0.1:  uint64(hostsActiveCheckExecutionTenthSecond),
@@ -643,7 +643,7 @@ func (e *Exporter) QueryAPIsAndUpdateMetrics(ch chan<- prometheus.Metric, sslVer
 	)
 
 	ch <- prometheus.MustNewConstHistogram(
-		servicesCheckLatency, uint64(servicesActiveCheckCount), servicesActiveCheckExecutionSum, map[float64]uint64{
+		servicesCheckExecution, uint64(servicesActiveCheckCount), servicesActiveCheckExecutionSum, map[float64]uint64{
 			0.01: uint64(servicesActiveCheckExecutionHundredthSecond),
 			0.05: uint64(servicesActiveCheckExecutionFifthHundredthSecond),
 			0.1:  uint64(servicesActiveCheckExecutionTenthSecond),
