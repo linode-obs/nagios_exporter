@@ -1,4 +1,4 @@
-module github.com/wbollock/nagiosxi_exporter
+module github.com/wbollock/nagios_exporter
 
 go 1.19
 

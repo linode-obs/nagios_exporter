@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	log "github.com/sirupsen/logrus"
-	"github.com/wbollock/nagiosxi_exporter/get_nagios_version"
+	"github.com/wbollock/nagios_exporter/get_nagios_version"
 )
 
 func TestGetStringFromWebpage(t *testing.T) {
