@@ -2,12 +2,12 @@ package get_nagios_version
 
 import (
 	"fmt"
-	"io/ioutil" // TODO: ioutil outdated
+	"io"
 	"net/http"
 	"strings"
 
-	"golang.org/x/net/html"
 	log "github.com/sirupsen/logrus"
+	"golang.org/x/net/html"
 )
 
 func GetLatestNagiosXIVersion(NagiosXIURL string) (version string, err error) {
@@ -21,7 +21,7 @@ func GetLatestNagiosXIVersion(NagiosXIURL string) (version string, err error) {
 	defer resp.Body.Close()
 
 	// Read the HTML data
-	htmlData, err := ioutil.ReadAll(resp.Body)
+	htmlData, err := io.ReadAll(resp.Body)
 	if err != nil {
 		log.Fatal(err)
 		return "", err
