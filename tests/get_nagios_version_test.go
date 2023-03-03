@@ -5,13 +5,14 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/wbollock/nagiosxi_exporter/get_nagios_version"
 )
 
 func TestGetStringFromWebpage(t *testing.T) {
 	// Create a test server that will return a specific string when called
 	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(`<!DOCTYPE html>
+		_, err := w.Write([]byte(`<!DOCTYPE html>
 		<html>
 		<head>
 				<title>Nagios XI &middot; Previous Versions</title><link rel="stylesheet" href="https://assets.nagios.com/pageparts/styles/A.bootstrap.3.min.css.pagespeed.cf.G6_26bvhk8.css" type="text/css"/>
@@ -40,6 +41,10 @@ func TestGetStringFromWebpage(t *testing.T) {
 						<td><a href='5/xi-5.9.2.tar.gz' onclick="ga('send', 'event', 'nagiosxi', 'Download', 'source');">xi-5.9.2</a></td>
 						<td>77.42M</td>
 						<td>12/5/22 08:20</td>"`))
+		if err != nil {
+			// handle the error here
+			log.Fatal(err)
+		}
 	}))
 	defer testServer.Close()
 
