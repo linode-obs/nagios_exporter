@@ -28,20 +28,50 @@ This exporter does not output Nagios check results as Prometheus metrics; it is 
 
 - [nagios\_exporter](#nagios_exporter)
   - [Table of Contents](#table-of-contents)
-  - [Configuration](#configuration)
-    - [Configuration File](#configuration-file)
-    - [CLI](#cli)
-    - [Nagios Core 3/4 support](#nagios-core-34-support)
   - [Installation](#installation)
     - [Debian/RPM package](#debianrpm-package)
     - [Binary](#binary)
     - [Source](#source)
+  - [Configuration](#configuration)
+    - [Configuration File](#configuration-file)
+    - [CLI](#cli)
+    - [Nagios Core 3/4 support](#nagios-core-34-support)
+  - [Metrics](#metrics)
   - [Grafana](#grafana)
   - [Troubleshooting](#troubleshooting)
     - [NagiosXI](#nagiosxi)
     - [Nagios Core 3/4, CheckMK](#nagios-core-34-checkmk)
   - [Resources Used](#resources-used)
   - [Contributors ✨](#contributors-)
+
+## Installation
+
+### Debian/RPM package
+
+Substitute `{{ version }}` for your desired release.
+
+```bash
+wget https://github.com/wbollock/nagios_exporter/releases/download/v{{ version }}/prometheus-nagios-exporter_{{ version }}_linux_amd64.{deb,rpm}
+{dpkg,rpm} -i prometheus-nagios-exporter_{{ version }}_linux_amd64.{deb,rpm}
+```
+
+### Binary
+
+```bash
+wget https://github.com/wbollock/nagios_exporter/releases/download/v{{ version }}/nagios_exporter_{{ version }}_Linux_x86_64.tar.gz
+tar xvf nagios_exporter_{{ version }}_Linux_x86_64.tar.gz
+./nagios_exporter/prometheus-nagios-exporter
+```
+
+### Source
+
+```bash
+wget https://github.com/wbollock/nagios_exporter/archive/refs/tags/v{{ version }}.tar.gz
+tar xvf nagios_exporter-{{ version }}.tar.gz
+cd ./nagios_exporter-{{ version }}
+go build nagios_exporter.go
+./nagios_exporter.go
+```
 
 ## Configuration
 
@@ -105,34 +135,43 @@ Example usage:
 
 Note that this flag nullifies all others. It cannot be used in conjunction with the Nagios XI API.
 
-## Installation
+## Metrics
 
-### Debian/RPM package
+<details close>
 
-Substitute `{{ version }}` for your desired release.
+  <summary>Click to expand metrics</summary>
 
-```bash
-wget https://github.com/wbollock/nagios_exporter/releases/download/v{{ version }}/prometheus-nagios-exporter_{{ version }}_linux_amd64.{deb,rpm}
-{dpkg,rpm} -i prometheus-nagios-exporter_{{ version }}_linux_amd64.{deb,rpm}
-```
+| Metric Name                       | Description                                          | Type      |
+|:--------------------------------:|:----------------------------------------------------:|:---------:|
+| `nagios_build_info`               | Nagios exporter build information                    | gauge     |
+| `nagios_host_checks_execution`    | Host check execution                                 | histogram |
+| `nagios_host_checks_latency`      | Host check latency                                   | histogram |
+| `nagios_host_checks_minutes`      | Host checks over time                                | histogram |
+| `nagios_host_checks_performance_seconds` | Host checks performance                      | gauge     |
+| `nagios_hosts_acknowledges_total` | Amount of host problems acknowledged                 | gauge     |
+| `nagios_hosts_checked_total`      | Amount of hosts checked                              | gauge     |
+| `nagios_hosts_downtime_total`     | Amount of hosts in downtime                          | gauge     |
+| `nagios_hosts_status_total`       | Amount of hosts in different states                  | gauge     |
+| `nagios_hosts_total`              | Amount of hosts present in configuration             | gauge     |
+| `nagios_service_checks_execution` | Service check execution                              | histogram |
+| `nagios_service_checks_latency`   | Service check latency                                | histogram |
+| `nagios_service_checks_minutes`   | Service checks over time                             | histogram |
+| `nagios_service_checks_performance_seconds` | Service checks performance               | gauge     |
+| `nagios_services_acknowledges_total` | Amount of service problems acknowledged         | gauge     |
+| `nagios_services_checked_total`   | Amount of services checked                           | gauge     |
+| `nagios_services_downtime_total`  | Amount of services in downtime                       | gauge     |
+| `nagios_services_status_total`    | Amount of services in different states               | gauge     |
+| `nagios_services_total`           | Amount of services present in configuration          | gauge     |
+| `nagios_up`                       | Whether Nagios can be reached                         | gauge     |
+| `nagios_update_available_info`    | NagiosXI update is available (optional metric!)                          | gauge     |
+| `nagios_users_privileges_total`   | Amount of admin or regular users                      | gauge     |
+| `nagios_users_status_total`       | Amount of disabled or enabled users                   | gauge     |
+| `nagios_users_total`              | Amount of users present on the system                 | gauge     |
+| `nagios_version_info`             | Nagios version information                            | gauge     |
 
-### Binary
+`nagios_update_available_info` is optional because the user may not want their Nagios server scraping the external version webpage every `scrape_interval`.
 
-```bash
-wget https://github.com/wbollock/nagios_exporter/releases/download/v{{ version }}/nagios_exporter_{{ version }}_Linux_x86_64.tar.gz 
-tar xvf nagios_exporter_{{ version }}_Linux_x86_64.tar.gz
-./nagios_exporter/prometheus-nagios-exporter
-```
-
-### Source
-
-```bash
-wget https://github.com/wbollock/nagios_exporter/archive/refs/tags/v{{ version }}.tar.gz
-tar xvf nagios_exporter-{{ version }}.tar.gz
-cd ./nagios_exporter-{{ version }}
-go build nagios_exporter.go
-./nagios_exporter.go
-```
+</details>
 
 ## Grafana
 
