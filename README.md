@@ -1,4 +1,7 @@
 <p align="center">
+  <img src="img/nagios_exporter_logo.jpg">
+</p>
+
 
 # nagios_exporter
 
@@ -26,7 +29,7 @@ This exporter does not output Nagios check results as Prometheus metrics; it is 
 
 ## Table of Contents
 
-- [nagios_exporter](#nagios_exporter)
+- [nagios\_exporter](#nagios_exporter)
   - [Table of Contents](#table-of-contents)
   - [Configuration](#configuration)
     - [Nagios Core 3/4 support](#nagios-core-34-support)
@@ -39,6 +42,7 @@ This exporter does not output Nagios check results as Prometheus metrics; it is 
     - [NagiosXI](#nagiosxi)
     - [Nagios Core 3/4, CheckMK](#nagios-core-34-checkmk)
   - [Resources Used](#resources-used)
+  - [Contributors ✨](#contributors-)
 
 ## Configuration
 
