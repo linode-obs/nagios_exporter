@@ -170,6 +170,12 @@ ssh root@<nagiosXI-VM-ip>
 curl -s localhost:9927/metrics | grep "^nagios"
 ```
 
+Install pre-commit hooks:
+
+```console
+pre-commit install
+```
+
 ## Releasing
 
 Follow goreleaser's [quick start](https://goreleaser.com/quick-start/) instructions.
