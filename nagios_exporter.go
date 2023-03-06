@@ -190,7 +190,7 @@ var (
 	// Optional metric
 	updateAvailable = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "update_available_info"), "NagiosXI update is available", nil, nil)
 
-	NagiosXIURL string = "https://assets.nagios.com/downloads/nagiosxi/versions.php"
+	NagiosXIURL = "https://assets.nagios.com/downloads/nagiosxi/versions.php"
 )
 
 type Exporter struct {
