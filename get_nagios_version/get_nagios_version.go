@@ -2,7 +2,6 @@ package get_nagios_version
 
 import (
 	"fmt"
-	"io"
 	"net/http"
 	"strings"
 
@@ -20,31 +19,34 @@ func GetLatestNagiosXIVersion(NagiosXIURL string) (version string, err error) {
 	}
 	defer resp.Body.Close()
 
-	// Read the HTML data
-	htmlData, err := io.ReadAll(resp.Body)
+	// Parse the HTML data into a tree structure
+	doc, err := html.Parse(resp.Body)
 	if err != nil {
 		log.Info(err)
 		return "", err
 	}
 
-	// Convert HTML data to a tokenizer
-	r := strings.NewReader(string(htmlData))
-	tokenizer := html.NewTokenizer(r)
-
-	// Iterate through all tokens
-	for {
-		tokenType := tokenizer.Next()
-
-		if tokenType == html.ErrorToken {
-			break
-		} else if tokenType == html.TextToken {
-			text := tokenizer.Token().Data
-			if strings.HasPrefix(text, "xi-") {
+	// https://pkg.go.dev/golang.org/x/net/html#Parse
+	// recursive function seems to be best practice
+	var traverse func(*html.Node) string
+	traverse = func(node *html.Node) string {
+		if node.Type == html.TextNode {
+			if strings.HasPrefix(node.Data, "xi-") {
 				// the first `xi-` string is the latest NagiosXI version in semver
-				return text, nil
+				return node.Data
 			}
 		}
-
+		for child := node.FirstChild; child != nil; child = child.NextSibling {
+			result := traverse(child)
+			if result != "" {
+				return result
+			}
+		}
+		return ""
 	}
-	return "", err
+
+	// traverse the HTML parse tree and return the version if found
+	version = traverse(doc)
+
+	return version, nil
 }
