@@ -23,7 +23,7 @@ func GetLatestNagiosXIVersion(NagiosXIURL string) (version string, err error) {
 	// Read the HTML data
 	htmlData, err := io.ReadAll(resp.Body)
 	if err != nil {
-		log.Fatal(err)
+		log.Info(err)
 		return "", err
 	}
 

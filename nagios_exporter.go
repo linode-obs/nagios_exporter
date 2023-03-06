@@ -1061,11 +1061,11 @@ func CompareNagiosVersions(latestVersion string, currentVersion string) float64 
 	// convert into version object for semver comparison
 	semVerLatest, err := version.NewVersion(cleanLatestVersion)
 	if err != nil {
-		log.Fatal(err)
+		log.Info(err)
 	}
 	semVerCurrent, err := version.NewVersion(cleanCurrentVersion)
 	if err != nil {
-		log.Fatal(err)
+		log.Info(err)
 	}
 
 	if semVerCurrent.LessThan(semVerLatest) {
