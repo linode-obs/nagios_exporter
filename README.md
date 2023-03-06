@@ -26,12 +26,13 @@ This exporter does not output Nagios check results as Prometheus metrics; it is 
 
 ## Table of Contents
 
-- [nagios_exporter](#nagios_exporter)
+- [nagios\_exporter](#nagios_exporter)
   - [Table of Contents](#table-of-contents)
   - [Configuration](#configuration)
     - [Nagios Core 3/4 support](#nagios-core-34-support)
   - [Installation](#installation)
     - [Debian/RPM package](#debianrpm-package)
+    - [Docker](#docker)
     - [Binary](#binary)
     - [Source](#source)
   - [Grafana](#grafana)
@@ -39,6 +40,7 @@ This exporter does not output Nagios check results as Prometheus metrics; it is 
     - [NagiosXI](#nagiosxi)
     - [Nagios Core 3/4, CheckMK](#nagios-core-34-checkmk)
   - [Resources Used](#resources-used)
+  - [Contributors ✨](#contributors-)
 
 ## Configuration
 
@@ -96,6 +98,17 @@ Substitute `{{ version }}` for your desired release.
 ```bash
 wget https://github.com/wbollock/nagios_exporter/releases/download/v{{ version }}/prometheus-nagios-exporter_{{ version }}_linux_amd64.{deb,rpm}
 {dpkg,rpm} -i prometheus-nagios-exporter_{{ version }}_linux_amd64.{deb,rpm}
+```
+
+### Docker
+
+Populate `config.toml` with your `APIKey = <NagiosXIAPIKey>`
+
+```console
+docker run \
+-v ./config.toml:/etc/prometheus-nagios-exporter/config.toml \
+ghcr.io/wbollock/nagios_exporter --\
+--nagios.scrape-uri https://<my-tls-url>
 ```
 
 ### Binary

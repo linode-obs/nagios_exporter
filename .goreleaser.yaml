@@ -32,6 +32,23 @@ changelog:
     exclude:
       - '^docs:'
       - '^test:'
+dockers:
+  # build latest and specific tag version images
+  - image_templates:
+      - "ghcr.io/wbollock/{{.ProjectName}}:{{ .Tag }}"
+      - "ghcr.io/wbollock/{{.ProjectName}}:latest"
+    goos: linux
+    goarch: amd64
+    use: docker
+    build_flag_templates:
+    - "--pull"
+    - "--label=org.opencontainers.image.created={{.Date}}"
+    - "--label=org.opencontainers.image.title={{.ProjectName}}"
+    - "--label=org.opencontainers.image.revision={{.FullCommit}}"
+    - "--label=org.opencontainers.image.version={{.Version}}"
+    - "--label=org.opencontainers.image.source=https://github.com/wbollock/nagios_exporter"
+    - "--label=org.opencontainers.image.description='A Prometheus Exporter for Nagios'"
+    - "--label=org.opencontainers.image.licenses=MIT"
 nfpms:
   -  id: default
      formats:
