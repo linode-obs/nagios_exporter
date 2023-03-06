@@ -26,9 +26,11 @@ This exporter does not output Nagios check results as Prometheus metrics; it is 
 
 ## Table of Contents
 
-- [nagios_exporter](#nagios_exporter)
+- [nagios\_exporter](#nagios_exporter)
   - [Table of Contents](#table-of-contents)
   - [Configuration](#configuration)
+    - [Configuration File](#configuration-file)
+    - [CLI](#cli)
     - [Nagios Core 3/4 support](#nagios-core-34-support)
   - [Installation](#installation)
     - [Debian/RPM package](#debianrpm-package)
@@ -39,6 +41,7 @@ This exporter does not output Nagios check results as Prometheus metrics; it is 
     - [NagiosXI](#nagiosxi)
     - [Nagios Core 3/4, CheckMK](#nagios-core-34-checkmk)
   - [Resources Used](#resources-used)
+  - [Contributors ✨](#contributors-)
 
 ## Configuration
 
@@ -50,19 +53,34 @@ Create a simple `config.toml` in `/etc/prometheus-nagios-exporter` with your Nag
 APIKey = ""
 ```
 
-By default this will point to `http://localhost`, but a remote address can be specified with `--nagios.scrape-uri`. The default port is `9927`, but can be changed with `--web.listen-address`.
+### Configuration File
 
-SSL support is included for scraping remote Nagios endpoints, and SSL verification can be enabled/disabled with `--nagios.ssl-verify`. A scrape timeout value is also available with `--nagios.timeout`.
+In TOML format.
 
-```bash
-./nagios_exporter --nagios.scrape-uri https://<my-tls-url> --nagios.ssl-verify true --nagios.timeout 5
-```
+| Environment Variable         | Description                                                     | Default   | Required |
+|:----------------------------:|-----------------------------------------------------------------|-----------|:--------:|
+| `APIKey`                     | The NagiosXI API key if exporting NagiosXI api-specific metrics |           | ❌       |
+
+### CLI
 
 To see all available configuration flags:
 
 ```bash
 ./prometheus-nagios-exporter -h
 ```
+
+| CLI Flag                       | Description                                                    | Default   | Required |
+|:------------------------------:|----------------------------------------------------------------|-----------|:--------:|
+| `---config.path`               | Configuration file path, only for API key | /etc/prometheus-nagios-exporter/config.toml           | ❌        |
+| `--log.level`               | Minimum log level like "debug" or "info"           |   info | ❌        |
+| `--nagios.check-updates`               | Enable optional `nagios_update_available_info` metric         |   false        | ❌       |
+| `--nagios.config_path`            | Nagios configuration path for use with nagiostats binary                           |    `/usr/local/nagios/etc/nagios.cfg  `     | ❌       |
+| `--nagios.scrape-uri`           | Nagios application address to scrape     |   `http://localhost    `    | ❌       |
+| `--nagios.ssl-verify`       | SSL certificate validation                      | false | ❌       |
+| `--nagios.stats_binary`         | Path of nagiostats binary and configuration (e.g `/usr/local/nagios/bin/nagiostats`)                |   | ❌       |
+| `--nagios.timeout`        | Timeout for querying Nagios API in seconds  (on big installations I recommend ~60)                     |     `5`       | ❌       |
+| `--web.listen-address`        |Address to listen on for telemetry (scrape port)                                |   `9927`        | ❌       |
+| `--web.telemetry-path`  | Path under which to expose metrics | `/metrics`   | ❌       |
 
 ### Nagios Core 3/4 support
 
