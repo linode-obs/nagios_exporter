@@ -102,13 +102,13 @@ wget https://github.com/wbollock/nagios_exporter/releases/download/v{{ version }
 
 ### Docker
 
-Populate `config.toml` with your `APIKey = <NagiosXIAPIKey>`
+Populate `config.toml` with your `APIKey = NagiosXIAPIKey`
 
 ```console
-docker run \
+sudo docker run \
 -v ./config.toml:/etc/prometheus-nagios-exporter/config.toml \
-ghcr.io/wbollock/nagios_exporter --\
---nagios.scrape-uri https://<my-tls-url>
+ghcr.io/wbollock/nagios_exporter \
+--nagios.scrape-uri http://localhost
 ```
 
 ### Binary
