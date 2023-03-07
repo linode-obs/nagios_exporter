@@ -6,8 +6,6 @@ FROM quay.io/prometheus/busybox-${OS}-${ARCH}:latest
 # https://github.com/prometheus/busybox
 LABEL maintainer="Will Bollock <wbollock@gmail.com>"
 
-ARG ARCH="amd64"
-ARG OS="linux"
 COPY nagios_exporter /bin/nagios_exporter
 
 EXPOSE      9927
