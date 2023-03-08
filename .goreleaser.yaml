@@ -16,12 +16,15 @@ builds:
     ldflags:
       - -X main.Version={{.Version}} -X main.Commit={{.Commit}} -X main.BuildDate={{ .CommitDate }}
 archives:
-  - replacements:
-      darwin: Darwin
-      linux: Linux
-      windows: Windows
-      386: i386
-      amd64: x86_64
+  - name_template: >-
+      {{ .ProjectName }}_
+      {{- title .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else if eq .Arch "darwin" }}Darwin
+      {{- else if eq .Arch "linux" }}Linux
+      {{- else if eq .Arch "windows" }}Windows
+      {{- else }}{{ .Arch }}{{ end }}
 checksum:
   name_template: 'checksums.txt'
 snapshot:
@@ -32,6 +35,23 @@ changelog:
     exclude:
       - '^docs:'
       - '^test:'
+dockers:
+  # build latest and specific tag version images
+  - image_templates:
+      - "ghcr.io/wbollock/{{.ProjectName}}:{{ .Tag }}"
+      - "ghcr.io/wbollock/{{.ProjectName}}:latest"
+    goos: linux
+    goarch: amd64
+    use: docker
+    build_flag_templates:
+    - "--pull"
+    - "--label=org.opencontainers.image.created={{.Date}}"
+    - "--label=org.opencontainers.image.title={{.ProjectName}}"
+    - "--label=org.opencontainers.image.revision={{.FullCommit}}"
+    - "--label=org.opencontainers.image.version={{.Version}}"
+    - "--label=org.opencontainers.image.source=https://github.com/wbollock/nagios_exporter"
+    - "--label=org.opencontainers.image.description='A Prometheus Exporter for Nagios'"
+    - "--label=org.opencontainers.image.licenses=MIT"
 nfpms:
   -  id: default
      formats:

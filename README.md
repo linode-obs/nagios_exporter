@@ -32,6 +32,7 @@ This exporter does not output Nagios check results as Prometheus metrics; it is 
   - [Table of Contents](#table-of-contents)
   - [Installation](#installation)
     - [Debian/RPM package](#debianrpm-package)
+    - [Docker](#docker)
     - [Binary](#binary)
     - [Source](#source)
   - [Configuration](#configuration)
@@ -57,6 +58,17 @@ Substitute `{{ version }}` for your desired release.
 ```bash
 wget https://github.com/wbollock/nagios_exporter/releases/download/v{{ version }}/prometheus-nagios-exporter_{{ version }}_linux_amd64.{deb,rpm}
 {dpkg,rpm} -i prometheus-nagios-exporter_{{ version }}_linux_amd64.{deb,rpm}
+```
+
+### Docker
+
+Populate `config.toml` with your `APIKey = NagiosXIAPIKey`
+
+```console
+sudo docker run \
+-v ./config.toml:/etc/prometheus-nagios-exporter/config.toml \
+ghcr.io/wbollock/nagios_exporter \
+--nagios.scrape-uri http://localhost
 ```
 
 ### Binary
@@ -108,7 +120,7 @@ To see all available configuration flags:
 | `---config.path`               | Configuration file path, only for API key | /etc/prometheus-nagios-exporter/config.toml           | ❌        |
 | `--log.level`               | Minimum log level like "debug" or "info"           |   info | ❌        |
 | `--nagios.check-updates`               | Enable optional `nagios_update_available_info` metric         |   false        | ❌       |
-| `--nagios.config_path`            | Nagios configuration path for use with nagiostats binary                           |    `/usr/local/nagios/etc/nagios.cfg  `     | ❌       |
+| `--nagios.config_path`            | Nagios configuration path for use with nagiostats binary                           |    `/usr/local/nagios/etc/nagios.cfg`     | ❌       |
 | `--nagios.scrape-uri`           | Nagios application address to scrape     |   `http://localhost    `    | ❌       |
 | `--nagios.ssl-verify`       | SSL certificate validation                      | false | ❌       |
 | `--nagios.stats_binary`         | Path of nagiostats binary and configuration (e.g `/usr/local/nagios/bin/nagiostats`)                |   | ❌       |
