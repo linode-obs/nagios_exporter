@@ -39,6 +39,7 @@ This exporter does not output Nagios check results as Prometheus metrics; it is 
     - [Configuration File](#configuration-file)
     - [CLI](#cli)
     - [Nagios Core 3/4 support](#nagios-core-34-support)
+  - [Metrics](#metrics)
   - [Grafana](#grafana)
   - [Troubleshooting](#troubleshooting)
     - [NagiosXI](#nagiosxi)
@@ -149,6 +150,44 @@ Example usage:
 ```
 
 Note that this flag nullifies all others. It cannot be used in conjunction with the Nagios XI API.
+
+## Metrics
+
+<details close>
+
+  <summary>Click to expand metrics</summary>
+
+| Metric Name                       | Description                                          | Type      |
+|:--------------------------------:|:----------------------------------------------------:|:---------:|
+| `nagios_build_info`               | Nagios exporter build information                    | gauge     |
+| `nagios_host_checks_execution`    | Host check execution                                 | histogram |
+| `nagios_host_checks_latency`      | Host check latency                                   | histogram |
+| `nagios_host_checks_minutes`      | Host checks over time                                | histogram |
+| `nagios_host_checks_performance_seconds` | Host checks performance                      | gauge     |
+| `nagios_hosts_acknowledges_total` | Amount of host problems acknowledged                 | gauge     |
+| `nagios_hosts_checked_total`      | Amount of hosts checked                              | gauge     |
+| `nagios_hosts_downtime_total`     | Amount of hosts in downtime                          | gauge     |
+| `nagios_hosts_status_total`       | Amount of hosts in different states                  | gauge     |
+| `nagios_hosts_total`              | Amount of hosts present in configuration             | gauge     |
+| `nagios_service_checks_execution` | Service check execution                              | histogram |
+| `nagios_service_checks_latency`   | Service check latency                                | histogram |
+| `nagios_service_checks_minutes`   | Service checks over time                             | histogram |
+| `nagios_service_checks_performance_seconds` | Service checks performance               | gauge     |
+| `nagios_services_acknowledges_total` | Amount of service problems acknowledged         | gauge     |
+| `nagios_services_checked_total`   | Amount of services checked                           | gauge     |
+| `nagios_services_downtime_total`  | Amount of services in downtime                       | gauge     |
+| `nagios_services_status_total`    | Amount of services in different states               | gauge     |
+| `nagios_services_total`           | Amount of services present in configuration          | gauge     |
+| `nagios_up`                       | Whether Nagios can be reached                         | gauge     |
+| `nagios_update_available_info`    | NagiosXI update is available (optional metric!)                          | gauge     |
+| `nagios_users_privileges_total`   | Amount of admin or regular users                      | gauge     |
+| `nagios_users_status_total`       | Amount of disabled or enabled users                   | gauge     |
+| `nagios_users_total`              | Amount of users present on the system                 | gauge     |
+| `nagios_version_info`             | Nagios version information                            | gauge     |
+
+`nagios_update_available_info` is optional because the user may not want their Nagios server scraping the external version webpage every `scrape_interval`.
+
+</details>
 
 ## Grafana
 
