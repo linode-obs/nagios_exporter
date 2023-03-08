@@ -76,9 +76,6 @@ cd ./nagios_exporter-{{ version }}
 go build nagios_exporter.go
 ./nagios_exporter.go
 ```
-  - [Contributing](#contributing)
-  - [Releasing](#releasing)
-  - [Contributors ✨](#contributors-)
 
 ## Configuration
 
