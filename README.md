@@ -30,15 +30,15 @@ This exporter does not output Nagios check results as Prometheus metrics; it is 
 
 - [nagios\_exporter](#nagios_exporter)
   - [Table of Contents](#table-of-contents)
-  - [Configuration](#configuration)
-    - [Configuration File](#configuration-file)
-    - [CLI](#cli)
-    - [Nagios Core 3/4 support](#nagios-core-34-support)
   - [Installation](#installation)
     - [Debian/RPM package](#debianrpm-package)
     - [Docker](#docker)
     - [Binary](#binary)
     - [Source](#source)
+  - [Configuration](#configuration)
+    - [Configuration File](#configuration-file)
+    - [CLI](#cli)
+    - [Nagios Core 3/4 support](#nagios-core-34-support)
   - [Grafana](#grafana)
   - [Troubleshooting](#troubleshooting)
     - [NagiosXI](#nagiosxi)
@@ -47,6 +47,46 @@ This exporter does not output Nagios check results as Prometheus metrics; it is 
   - [Contributing](#contributing)
   - [Releasing](#releasing)
   - [Contributors ✨](#contributors-)
+
+## Installation
+
+### Debian/RPM package
+
+Substitute `{{ version }}` for your desired release.
+
+```bash
+wget https://github.com/wbollock/nagios_exporter/releases/download/v{{ version }}/prometheus-nagios-exporter_{{ version }}_linux_amd64.{deb,rpm}
+{dpkg,rpm} -i prometheus-nagios-exporter_{{ version }}_linux_amd64.{deb,rpm}
+```
+
+### Docker
+
+Populate `config.toml` with your `APIKey = NagiosXIAPIKey`
+
+```console
+sudo docker run \
+-v ./config.toml:/etc/prometheus-nagios-exporter/config.toml \
+ghcr.io/wbollock/nagios_exporter \
+--nagios.scrape-uri http://localhost
+```
+
+### Binary
+
+```bash
+wget https://github.com/wbollock/nagios_exporter/releases/download/v{{ version }}/nagios_exporter_{{ version }}_Linux_x86_64.tar.gz
+tar xvf nagios_exporter_{{ version }}_Linux_x86_64.tar.gz
+./nagios_exporter/prometheus-nagios-exporter
+```
+
+### Source
+
+```bash
+wget https://github.com/wbollock/nagios_exporter/archive/refs/tags/v{{ version }}.tar.gz
+tar xvf nagios_exporter-{{ version }}.tar.gz
+cd ./nagios_exporter-{{ version }}
+go build nagios_exporter.go
+./nagios_exporter.go
+```
 
 ## Configuration
 
@@ -109,46 +149,6 @@ Example usage:
 ```
 
 Note that this flag nullifies all others. It cannot be used in conjunction with the Nagios XI API.
-
-## Installation
-
-### Debian/RPM package
-
-Substitute `{{ version }}` for your desired release.
-
-```bash
-wget https://github.com/wbollock/nagios_exporter/releases/download/v{{ version }}/prometheus-nagios-exporter_{{ version }}_linux_amd64.{deb,rpm}
-{dpkg,rpm} -i prometheus-nagios-exporter_{{ version }}_linux_amd64.{deb,rpm}
-```
-
-### Docker
-
-Populate `config.toml` with your `APIKey = NagiosXIAPIKey`
-
-```console
-sudo docker run \
--v ./config.toml:/etc/prometheus-nagios-exporter/config.toml \
-ghcr.io/wbollock/nagios_exporter \
---nagios.scrape-uri http://localhost
-```
-
-### Binary
-
-```bash
-wget https://github.com/wbollock/nagios_exporter/releases/download/v{{ version }}/nagios_exporter_{{ version }}_Linux_x86_64.tar.gz 
-tar xvf nagios_exporter_{{ version }}_Linux_x86_64.tar.gz
-./nagios_exporter/prometheus-nagios-exporter
-```
-
-### Source
-
-```bash
-wget https://github.com/wbollock/nagios_exporter/archive/refs/tags/v{{ version }}.tar.gz
-tar xvf nagios_exporter-{{ version }}.tar.gz
-cd ./nagios_exporter-{{ version }}
-go build nagios_exporter.go
-./nagios_exporter.go
-```
 
 ## Grafana
 
