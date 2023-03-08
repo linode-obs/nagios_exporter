@@ -1,4 +1,6 @@
 <p align="center">
+  <img src="img/nagios_exporter_logo.jpg">
+</p>
 
 # nagios_exporter
 
