@@ -14,7 +14,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/wbollock/nagios_exporter/get_nagios_version"
+
 	"github.com/BurntSushi/toml"
+	"github.com/hashicorp/go-version"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
@@ -183,6 +186,11 @@ var (
 	usersTotal      = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "users_total"), "Amount of users present on the system", nil, nil)
 	usersPrivileges = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "users_privileges_total"), "Amount of admin or regular users", []string{"privileges"}, nil)
 	usersStatus     = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "users_status_total"), "Amount of disabled or enabled users", []string{"status"}, nil)
+
+	// Optional metric
+	updateAvailable = prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "update_available_info"), "NagiosXI update is available", nil, nil)
+
+	NagiosXIURL = "https://assets.nagios.com/downloads/nagiosxi/versions.php"
 )
 
 type Exporter struct {
@@ -191,9 +199,10 @@ type Exporter struct {
 	nagiosAPITimeout             time.Duration
 	nagiostatsPath               string
 	nagiosconfigPath             string
+	checkUpdates                 bool
 }
 
-func NewExporter(nagiosEndpoint, nagiosAPIKey string, sslVerify bool, nagiosAPITimeout time.Duration, nagiostatsPath string, nagiosconfigPath string) *Exporter {
+func NewExporter(nagiosEndpoint, nagiosAPIKey string, sslVerify bool, nagiosAPITimeout time.Duration, nagiostatsPath string, nagiosconfigPath string, checkUpdates bool) *Exporter {
 	return &Exporter{
 		nagiosEndpoint:   nagiosEndpoint,
 		nagiosAPIKey:     nagiosAPIKey,
@@ -201,6 +210,7 @@ func NewExporter(nagiosEndpoint, nagiosAPIKey string, sslVerify bool, nagiosAPIT
 		nagiosAPITimeout: nagiosAPITimeout,
 		nagiostatsPath:   nagiostatsPath,
 		nagiosconfigPath: nagiosconfigPath,
+		checkUpdates:     checkUpdates,
 	}
 }
 
@@ -243,6 +253,8 @@ func (e *Exporter) Describe(ch chan<- *prometheus.Desc) {
 		ch <- usersPrivileges
 		ch <- usersStatus
 	}
+	// Optional metric
+	ch <- updateAvailable
 }
 
 func (e *Exporter) TestNagiosConnectivity(sslVerify bool, nagiosAPITimeout time.Duration) float64 {
@@ -288,7 +300,7 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 			up, prometheus.GaugeValue, nagiosStatus,
 		)
 
-		e.QueryAPIsAndUpdateMetrics(ch, e.sslVerify, e.nagiosAPITimeout)
+		e.QueryAPIsAndUpdateMetrics(ch, e.sslVerify, e.nagiosAPITimeout, e.checkUpdates)
 	} else {
 		nagiosStatus := e.TestNagiosstatsBinary(e.nagiostatsPath, e.nagiosconfigPath)
 		if nagiosStatus == 0 {
@@ -427,7 +439,7 @@ func histogramProducer(bucket1, bucket2, bucket3, bucket4, bucket5, bucket6, buc
 	}
 	return bucket1, bucket2, bucket3, bucket4, bucket5, bucket6, bucket7, bucket8, bucket9, bucket10
 }
-func (e *Exporter) QueryAPIsAndUpdateMetrics(ch chan<- prometheus.Metric, sslVerify bool, nagiosAPITimeout time.Duration) {
+func (e *Exporter) QueryAPIsAndUpdateMetrics(ch chan<- prometheus.Metric, sslVerify bool, nagiosAPITimeout time.Duration, checkUpdates bool) {
 
 	// get system status
 	systeminfoURL := e.nagiosEndpoint + systeminfoAPI + "?apikey=" + e.nagiosAPIKey
@@ -444,6 +456,24 @@ func (e *Exporter) QueryAPIsAndUpdateMetrics(ch chan<- prometheus.Metric, sslVer
 	ch <- prometheus.MustNewConstMetric(
 		versionInfo, prometheus.GaugeValue, 1, systemInfoObject.Version,
 	)
+
+	// optional cmdline flag to expose this metric
+	if checkUpdates {
+		nagiosVersion, err := get_nagios_version.GetLatestNagiosXIVersion(NagiosXIURL)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		updateMetric := CompareNagiosVersions(nagiosVersion, systemInfoObject.Version)
+		ch <- prometheus.MustNewConstMetric(
+			updateAvailable, prometheus.GaugeValue, updateMetric,
+			// updateMetric 0 = no update, updateMetric 1 = update available
+		)
+	} else { // user did not want to compare nagios versions externally so just say there aren't any updates (0)
+		ch <- prometheus.MustNewConstMetric(
+			updateAvailable, prometheus.GaugeValue, 0,
+		)
+	}
 
 	// host status
 	hoststatusURL := e.nagiosEndpoint + hoststatusAPI + "?apikey=" + e.nagiosAPIKey
@@ -1020,6 +1050,30 @@ func (e *Exporter) QueryNagiostatsAndUpdateMetrics(ch chan<- prometheus.Metric, 
 	log.Info("Nagiostats scraped and metrics updated")
 }
 
+func CompareNagiosVersions(latestVersion string, currentVersion string) float64 {
+	xiPrefix := "xi-" // NagiosXI versions always start with this
+	cleanLatestVersion := strings.Trim(latestVersion, xiPrefix)
+	cleanCurrentVersion := strings.Trim(currentVersion, xiPrefix)
+
+	log.Debug("NagiosXI latest version: ", cleanLatestVersion)
+	log.Debug("NagiosXI current version: ", cleanCurrentVersion)
+
+	// convert into version object for semver comparison
+	semVerLatest, err := version.NewVersion(cleanLatestVersion)
+	if err != nil {
+		log.Info(err)
+	}
+	semVerCurrent, err := version.NewVersion(cleanCurrentVersion)
+	if err != nil {
+		log.Info(err)
+	}
+
+	if semVerCurrent.LessThan(semVerLatest) {
+		return 1 // 1 = nagios update is available
+	}
+	return 0 // 0 = no nagios update available
+}
+
 // custom formatter modified from https://github.com/sirupsen/logrus/issues/719#issuecomment-536459432
 // https://stackoverflow.com/questions/48971780/how-to-change-the-format-of-log-output-in-logrus/48972299#48972299
 // required as Nagios XI API only supports giving the API token as a URL parameter, and thus can be leaked in the logs
@@ -1063,6 +1117,8 @@ func main() {
 			"Path of nagiostats binary and configuration (e.g /usr/local/nagios/bin/nagiostats -c /usr/local/nagios/etc/nagios.cfg)")
 		nagiosConfigPath = flag.String("nagios.config_path", "",
 			"Nagios configuration path for use with nagiostats binary (e.g /usr/local/nagios/etc/nagios.cfg)")
+		checkUpdates = flag.Bool("nagios.check-updates", false,
+			"Provides a metric on whether a NagiosXI update is available")
 	)
 
 	flag.Parse()
@@ -1092,7 +1148,7 @@ func main() {
 	}
 
 	// convert timeout flag to seconds
-	exporter := NewExporter(nagiosURL, conf.APIKey, *sslVerify, time.Duration(*nagiosAPITimeout)*time.Second, *statsBinary, *nagiosConfigPath)
+	exporter := NewExporter(nagiosURL, conf.APIKey, *sslVerify, time.Duration(*nagiosAPITimeout)*time.Second, *statsBinary, *nagiosConfigPath, *checkUpdates)
 	prometheus.MustRegister(exporter)
 
 	if *statsBinary == "" {
