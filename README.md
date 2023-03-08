@@ -1,4 +1,6 @@
 <p align="center">
+  <img src="img/nagios_exporter_logo.jpg">
+</p>
 
 # nagios_exporter
 
@@ -42,6 +44,8 @@ This exporter does not output Nagios check results as Prometheus metrics; it is 
     - [NagiosXI](#nagiosxi)
     - [Nagios Core 3/4, CheckMK](#nagios-core-34-checkmk)
   - [Resources Used](#resources-used)
+  - [Contributing](#contributing)
+  - [Releasing](#releasing)
   - [Contributors ✨](#contributors-)
 
 ## Installation
@@ -72,6 +76,9 @@ cd ./nagios_exporter-{{ version }}
 go build nagios_exporter.go
 ./nagios_exporter.go
 ```
+  - [Contributing](#contributing)
+  - [Releasing](#releasing)
+  - [Contributors ✨](#contributors-)
 
 ## Configuration
 
@@ -209,6 +216,38 @@ sudo su <prometheus-user> -s /bin/bash -c "/usr/local/nagios/bin/nagiostats -c /
 * [jsonutils](https://github.com/bashtian/jsonutils)
 * [goreleaser](https://github.com/goreleaser/goreleaser)
 * [nfpm](https://github.com/goreleaser/nfpm)
+
+## Contributing
+
+To build and run the Debian package, install go-releaser and run:
+
+```bash
+goreleaser release --clean --snapshot
+# currently I develop on a VM running NagiosXI, but a container would be cool too
+scp dist/prometheus-nagios-exporter_1.2.2-next_linux_386.deb root@<nagiosXI-VM-ip>:/root/
+dpkg -i prometheus-nagios-exporter_1.2.2-next_linux_amd64.deb
+# examine metrics
+ssh root@<nagiosXI-VM-ip>
+curl -s localhost:9927/metrics | grep "^nagios"
+```
+
+Install pre-commit hooks:
+
+```console
+pre-commit install
+```
+
+## Releasing
+
+Follow goreleaser's [quick start](https://goreleaser.com/quick-start/) instructions.
+
+```bash
+# make changes, merge into main
+export GITHUB_TOKEN="YOUR_GH_TOKEN"
+git tag -a v<semver> -m "Release summary"
+git push origin v<semver>
+goreleaser release
+```
 
 ## Contributors ✨
 
