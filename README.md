@@ -255,6 +255,10 @@ Follow goreleaser's [quick start](https://goreleaser.com/quick-start/) instructi
 export GITHUB_TOKEN="YOUR_GH_TOKEN"
 git tag -a v<semver> -m "Release summary"
 git push origin v<semver>
+# login to ghcr too
+# https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry#authenticating-with-a-personal-access-token-classic
+echo $CR_PAT | docker login ghcr.io -u $USERNAME --password-stdin
+
 goreleaser release
 ```
 
