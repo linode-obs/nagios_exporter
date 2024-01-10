@@ -461,7 +461,8 @@ func (e *Exporter) QueryAPIsAndUpdateMetrics(ch chan<- prometheus.Metric, sslVer
 	if checkUpdates {
 		nagiosVersion, err := get_nagios_version.GetLatestNagiosXIVersion(NagiosXIURL)
 		if err != nil {
-			log.Fatal(err)
+			// don't abandon exporter just for version updater issues
+			log.Warn(err)
 		}
 
 		updateMetric := CompareNagiosVersions(nagiosVersion, systemInfoObject.Version)

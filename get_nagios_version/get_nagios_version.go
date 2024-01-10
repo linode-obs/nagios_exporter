@@ -1,11 +1,9 @@
 package get_nagios_version
 
 import (
-	"fmt"
 	"net/http"
 	"strings"
 
-	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/html"
 )
 
@@ -14,15 +12,13 @@ func GetLatestNagiosXIVersion(NagiosXIURL string) (version string, err error) {
 	// Fetch the HTML source data from the URL
 	resp, err := http.Get(NagiosXIURL)
 	if err != nil {
-		fmt.Println("Error fetching HTML:", err)
-		return
+		return "", err
 	}
 	defer resp.Body.Close()
 
 	// Parse the HTML data into a tree structure
 	doc, err := html.Parse(resp.Body)
 	if err != nil {
-		log.Info(err)
 		return "", err
 	}
 
