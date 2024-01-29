@@ -38,8 +38,8 @@ changelog:
 dockers:
   # build latest and specific tag version images
   - image_templates:
-      - "ghcr.io/wbollock/{{.ProjectName}}:{{ .Tag }}"
-      - "ghcr.io/wbollock/{{.ProjectName}}:latest"
+      - "ghcr.io/linode_obs/{{.ProjectName}}:{{ .Tag }}"
+      - "ghcr.io/linode_obs/{{.ProjectName}}:latest"
     goos: linux
     goarch: amd64
     use: docker
@@ -49,7 +49,7 @@ dockers:
     - "--label=org.opencontainers.image.title={{.ProjectName}}"
     - "--label=org.opencontainers.image.revision={{.FullCommit}}"
     - "--label=org.opencontainers.image.version={{.Version}}"
-    - "--label=org.opencontainers.image.source=https://github.com/wbollock/nagios_exporter"
+    - "--label=org.opencontainers.image.source=https://github.com/linode_obs/nagios_exporter"
     - "--label=org.opencontainers.image.description='A Prometheus Exporter for Nagios'"
     - "--label=org.opencontainers.image.licenses=MIT"
 nfpms:
@@ -69,7 +69,7 @@ nfpms:
      description: |
        A Prometheus Nagios Exporter that provides information
        on the current state of a Nagios application and configuration.
-     homepage: "https://github.com/wbollock/nagios_exporter"
+     homepage: "https://github.com/linode_obs/nagios_exporter"
      license: "MIT"
      # TODO - changelog?
      #changelog: "changelog.yaml"

@@ -1,6 +1,6 @@
 [Unit]
 Description=Nagios Exporter
-Documentation=https://github.com/wbollock/nagios_exporter
+Documentation=https://github.com/linode_obs/nagios_exporter
 Wants=network-online.target nagios.service
 After=network-online.target nagios.service
 
