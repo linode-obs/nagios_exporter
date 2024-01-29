@@ -1,4 +1,4 @@
-module github.com/wbollock/nagios_exporter
+module github.com/linode_obs/nagios_exporter
 
 go 1.19
 

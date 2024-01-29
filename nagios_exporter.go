@@ -14,7 +14,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/wbollock/nagios_exporter/get_nagios_version"
+	"github.com/linode_obs/nagios_exporter/get_nagios_version"
 
 	"github.com/BurntSushi/toml"
 	"github.com/hashicorp/go-version"
