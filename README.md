@@ -4,11 +4,11 @@
 
 # nagios_exporter
 
-![Github Release Downloads](https://img.shields.io/github/downloads/linode_obs/nagios_exporter/total.svg)
-[![license](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/linode_obs/nagios_exporter/blob/master/LICENSE)
-[![golangci-lint](https://github.com/linode_obs/nagios_exporter/actions/workflows/golangci-lint.yaml/badge.svg)](https://github.com/linode_obs/nagios_exporter/actions/workflows/golangci-lint.yaml)
-![Go Report Card](https://goreportcard.com/badge/github.com/linode_obs/nagios_exporter)
-[![contributions](https://img.shields.io/badge/contributions-welcome-brightgreen.svg?style=flat")](https://github.com/linode_obs/nagios_exporter/issues)
+![Github Release Downloads](https://img.shields.io/github/downloads/linode-obs/nagios_exporter/total.svg)
+[![license](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/linode-obs/nagios_exporter/blob/master/LICENSE)
+[![golangci-lint](https://github.com/linode-obs/nagios_exporter/actions/workflows/golangci-lint.yaml/badge.svg)](https://github.com/linode-obs/nagios_exporter/actions/workflows/golangci-lint.yaml)
+![Go Report Card](https://goreportcard.com/badge/github.com/linode-obs/nagios_exporter)
+[![contributions](https://img.shields.io/badge/contributions-welcome-brightgreen.svg?style=flat")](https://github.com/linode-obs/nagios_exporter/issues)
 
 A Prometheus exporter currently supporting:
 
@@ -57,7 +57,7 @@ This exporter does not output Nagios check results as Prometheus metrics; it is 
 Substitute `{{ version }}` for your desired release.
 
 ```bash
-wget https://github.com/linode_obs/nagios_exporter/releases/download/v{{ version }}/prometheus-nagios-exporter_{{ version }}_linux_amd64.{deb,rpm}
+wget https://github.com/linode-obs/nagios_exporter/releases/download/v{{ version }}/prometheus-nagios-exporter_{{ version }}_linux_amd64.{deb,rpm}
 {dpkg,rpm} -i prometheus-nagios-exporter_{{ version }}_linux_amd64.{deb,rpm}
 ```
 
@@ -68,14 +68,14 @@ Populate `config.toml` with your `APIKey = NagiosXIAPIKey`
 ```console
 sudo docker run \
 -v ./config.toml:/etc/prometheus-nagios-exporter/config.toml \
-ghcr.io/linode_obs/nagios_exporter \
+ghcr.io/linode-obs/nagios_exporter \
 --nagios.scrape-uri http://localhost
 ```
 
 ### Binary
 
 ```bash
-wget https://github.com/linode_obs/nagios_exporter/releases/download/v{{ version }}/nagios_exporter_{{ version }}_Linux_x86_64.tar.gz
+wget https://github.com/linode-obs/nagios_exporter/releases/download/v{{ version }}/nagios_exporter_{{ version }}_Linux_x86_64.tar.gz
 tar xvf nagios_exporter_{{ version }}_Linux_x86_64.tar.gz
 ./nagios_exporter/prometheus-nagios-exporter
 ```
@@ -83,7 +83,7 @@ tar xvf nagios_exporter_{{ version }}_Linux_x86_64.tar.gz
 ### Source
 
 ```bash
-wget https://github.com/linode_obs/nagios_exporter/archive/refs/tags/v{{ version }}.tar.gz
+wget https://github.com/linode-obs/nagios_exporter/archive/refs/tags/v{{ version }}.tar.gz
 tar xvf nagios_exporter-{{ version }}.tar.gz
 cd ./nagios_exporter-{{ version }}
 go build nagios_exporter.go
@@ -271,7 +271,7 @@ goreleaser release
 <table>
   <tbody>
     <tr>
-      <td align="center"><a href="https://github.com/tjhop"><img src="https://avatars.githubusercontent.com/u/33664289?v=4?s=100" width="100px;" alt="TJ Hoplock"/><br /><sub><b>TJ Hoplock</b></sub></a><br /><a href="https://github.com/linode_obs/nagios_exporter/commits?author=tjhop" title="Code">💻</a> <a href="#mentoring-tjhop" title="Mentoring">🧑‍🏫</a></td>
+      <td align="center"><a href="https://github.com/tjhop"><img src="https://avatars.githubusercontent.com/u/33664289?v=4?s=100" width="100px;" alt="TJ Hoplock"/><br /><sub><b>TJ Hoplock</b></sub></a><br /><a href="https://github.com/linode-obs/nagios_exporter/commits?author=tjhop" title="Code">💻</a> <a href="#mentoring-tjhop" title="Mentoring">🧑‍🏫</a></td>
     </tr>
   </tbody>
 </table>

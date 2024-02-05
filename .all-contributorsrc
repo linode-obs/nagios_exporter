@@ -22,5 +22,5 @@
   "repoType": "github",
   "repoHost": "https://github.com",
   "projectName": "nagios_exporter",
-  "projectOwner": "linode_obs"
+  "projectOwner": "linode-obs"
 }
