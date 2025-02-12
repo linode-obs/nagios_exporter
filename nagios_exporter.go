@@ -472,9 +472,9 @@ func (e *Exporter) QueryAPIsAndUpdateMetrics(ch chan<- prometheus.Metric, sslVer
 				updateAvailable, prometheus.GaugeValue, updateMetric,
 				// updateMetric 0 = no update, updateMetric 1 = update available
 			)
+		} else {
+			log.Warn("Nagios version wasn't found, not updating `nagios_update_available_info` metric")
 		}
-
-		log.Warn("Nagios version wasn't found, not updating `nagios_update_available_info` metric")
 
 	} else { // user did not want to compare nagios versions externally so just say there aren't any updates (0)
 		ch <- prometheus.MustNewConstMetric(
