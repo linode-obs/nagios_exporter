@@ -251,6 +251,8 @@ pre-commit install
 
 Follow goreleaser's [quick start](https://goreleaser.com/quick-start/) instructions.
 
+Ensure you're using a classic Personal Access Token, not fine-grained. 
+
 ```bash
 # make changes, merge into main
 export GITHUB_TOKEN="YOUR_GH_TOKEN"
